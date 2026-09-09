@@ -18,6 +18,9 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+app:
+  auth-token: ${AUTH_TOKEN:local-auth-token}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
