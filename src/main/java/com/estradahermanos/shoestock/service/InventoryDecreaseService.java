@@ -18,18 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class InventoryRegisterService
+public class InventoryDecreaseService
 {
     private final ShoeRepository      shoeRepository;
     private final ShoeStockRepository shoeStockRepository;
     private final ShoeStockMapper     shoeStockMapper;
     private final InventoryValidator  inventoryValidator;
 
-    /** Ingresa mercaderia: crea la variante si no existe o incrementa su stock si ya existe. */
+    /** Descuenta stock de una variante existente. Pensado para el modulo de Ventas. */
     @Transactional
-    public ShoeStockResponseDTO register(RegisterStockRequestDTO request)
+    public ShoeStockResponseDTO decrease(RegisterStockRequestDTO request)
     {
-        log.info("Registering incoming stock");
+        log.info("Decreasing stock");
         try
         {
             if (request == null)
@@ -52,21 +52,23 @@ public class InventoryRegisterService
 
             ShoeStock variant = shoeStockRepository
                     .findByShoeIdAndColorAndSize(request.getShoeId(), request.getColor(), request.getSize())
-                    .map(existing ->
-                    {
-                        existing.setStock(existing.getStock() + request.getStock());
-                        return existing;
-                    })
-                    .orElseGet(() -> ShoeStock.builder()
-                            .shoeId(request.getShoeId())
-                            .color(request.getColor())
-                            .size(request.getSize())
-                            .stock(request.getStock())
-                            .minStock(0)
+                    .orElseThrow(() -> BusinessException.builder()
+                            .code(HttpStatus.NOT_FOUND)
+                            .message("Stock not found for the given shoe, color and size")
                             .build());
 
+            if (variant.getStock() < request.getStock())
+            {
+                throw BusinessException.builder()
+                        .code(HttpStatus.CONFLICT)
+                        .message("Insufficient stock to decrease")
+                        .build();
+            }
+
+            variant.setStock(variant.getStock() - request.getStock());
             ShoeStock saved = shoeStockRepository.save(variant);
-            log.info("Stock registered");
+            log.info("Stock decreased");
+            warnIfLowStock(saved);
             return shoeStockMapper.toResponse(saved);
         }
         catch (BusinessException exception)
@@ -75,11 +77,22 @@ public class InventoryRegisterService
         }
         catch (Exception exception)
         {
-            ExceptionLog.unexpected("Failed to register stock", exception);
+            ExceptionLog.unexpected("Failed to decrease stock", exception);
             throw BusinessException.builder()
                     .code(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .message("Could not register stock")
+                    .message("Could not decrease stock")
                     .build();
+        }
+    }
+
+    /** Avisa por log cuando la variante alcanza o baja de su stock minimo. */
+    private void warnIfLowStock(ShoeStock variant)
+    {
+        if (variant.getStock() <= variant.getMinStock())
+        {
+            log.warn("Low stock alert: shoe={} color={} size={} stock={} minStock={}",
+                    variant.getShoeId(), variant.getColor(), variant.getSize(),
+                    variant.getStock(), variant.getMinStock());
         }
     }
 }

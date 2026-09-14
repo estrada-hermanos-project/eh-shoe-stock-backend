@@ -5,7 +5,10 @@ import com.estradahermanos.shoestock.config.SecurityConfig;
 import com.estradahermanos.shoestock.config.WebMvcConfig;
 import com.estradahermanos.shoestock.dto.request.RegisterStockRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ShoeStockResponseDTO;
+import com.estradahermanos.shoestock.dto.response.StockQueryResponseDTO;
 import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
+import com.estradahermanos.shoestock.service.InventoryDecreaseService;
+import com.estradahermanos.shoestock.service.InventoryQueryService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +41,22 @@ class InventoryControllerTest
     @MockitoBean
     private InventoryRegisterService inventoryRegisterService;
 
+    @MockitoBean
+    private InventoryDecreaseService inventoryDecreaseService;
+
+    @MockitoBean
+    private InventoryQueryService inventoryQueryService;
+
+    private RegisterStockRequestDTO request()
+    {
+        return RegisterStockRequestDTO.builder()
+                .shoeId("OXF-001")
+                .color("Negro")
+                .size(40)
+                .stock(12)
+                .build();
+    }
+
     @Test
     void rejectsMissingAuthToken() throws Exception
     {
@@ -49,21 +69,45 @@ class InventoryControllerTest
     @Test
     void registerReturnsOk() throws Exception
     {
-        RegisterStockRequestDTO request = RegisterStockRequestDTO.builder()
-                .shoeId("OXF-001")
-                .color("Negro")
-                .size(40)
-                .stock(12)
-                .build();
         when(inventoryRegisterService.register(any())).thenReturn(
                 ShoeStockResponseDTO.builder().id(7).shoeId("OXF-001").color("Negro").size(40).stock(12).build());
 
         mockMvc.perform(post("/api/v1/inventory")
                         .header("auth-token", "test-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.shoe_id").value("OXF-001"))
+                .andExpect(jsonPath("$.data.stock").value(12));
+    }
+
+    @Test
+    void decreaseReturnsOk() throws Exception
+    {
+        when(inventoryDecreaseService.decrease(any())).thenReturn(
+                ShoeStockResponseDTO.builder().id(7).shoeId("OXF-001").color("Negro").size(40).stock(9).build());
+
+        mockMvc.perform(post("/api/v1/inventory/decrease")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stock").value(9));
+    }
+
+    @Test
+    void findStockReturnsOk() throws Exception
+    {
+        when(inventoryQueryService.findStock("OXF-001", "Negro", 40)).thenReturn(
+                StockQueryResponseDTO.builder().name("Oxford clasico").color("Negro").size(40).stock(12).build());
+
+        mockMvc.perform(get("/api/v1/inventory")
+                        .header("auth-token", "test-token")
+                        .param("shoe_id", "OXF-001")
+                        .param("color", "Negro")
+                        .param("size", "40"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Oxford clasico"))
                 .andExpect(jsonPath("$.data.stock").value(12));
     }
 }

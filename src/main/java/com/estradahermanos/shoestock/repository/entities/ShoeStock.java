@@ -37,4 +37,7 @@ public class ShoeStock
 
     @Column(name = "stock", nullable = false)
     private Integer stock;
+
+    @Column(name = "min_stock", nullable = false)
+    private Integer minStock;
 }
