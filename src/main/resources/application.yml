@@ -11,15 +11,21 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     open-in-view: false
     show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
 
 server:
   port: ${SERVER_PORT:8080}
 
 app:
   auth-token: ${AUTH_TOKEN:local-auth-token}
+  jwt:
+    secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-32bytes-min}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
 
 springdoc:
   api-docs:
