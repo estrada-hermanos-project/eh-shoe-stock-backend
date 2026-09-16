@@ -5,6 +5,7 @@ import com.estradahermanos.shoestock.repository.entities.Shoe;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +28,11 @@ public class ShoeRepository
     public List<Shoe> findAll()
     {
         return shoeCrud.findAll();
+    }
+
+    public List<Shoe> findAllById(Collection<String> codes)
+    {
+        return shoeCrud.findAllById(codes);
     }
 
     public List<Shoe> findBySupplier(Integer supplier)
