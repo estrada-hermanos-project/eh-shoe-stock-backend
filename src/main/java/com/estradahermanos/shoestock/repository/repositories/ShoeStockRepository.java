@@ -30,6 +30,11 @@ public class ShoeStockRepository
         return shoeStockCrud.findByShoeNameAndColorAndSize(name, color, size);
     }
 
+    public Optional<ShoeStock> findById(Integer id)
+    {
+        return shoeStockCrud.findById(id);
+    }
+
     public List<ShoeStock> findAllById(Collection<Integer> ids)
     {
         return shoeStockCrud.findAllById(ids);

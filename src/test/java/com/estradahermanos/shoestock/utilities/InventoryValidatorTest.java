@@ -33,4 +33,16 @@ class InventoryValidatorTest
     {
         assertThrows(BusinessException.class, () -> validator.validateRegister(5, 0));
     }
+
+    @Test
+    void acceptsValidAmount()
+    {
+        assertDoesNotThrow(() -> validator.validateAmount(1));
+    }
+
+    @Test
+    void rejectsAmountBelowOne()
+    {
+        assertThrows(BusinessException.class, () -> validator.validateAmount(0));
+    }
 }
