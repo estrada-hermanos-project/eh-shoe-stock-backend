@@ -22,4 +22,9 @@ public interface ShoeStockCrud extends JpaRepository<ShoeStock, Integer>
     List<ShoeStock> findByShoeNameAndColorAndSize(@Param("name") String name,
                                                   @Param("color") String color,
                                                   @Param("size") Integer size);
+
+    @Query("SELECT ss FROM ShoeStock ss WHERE ss.stock <= ss.minStock")
+    List<ShoeStock> findLowStock();
+
+    List<ShoeStock> findByStock(Integer stock);
 }

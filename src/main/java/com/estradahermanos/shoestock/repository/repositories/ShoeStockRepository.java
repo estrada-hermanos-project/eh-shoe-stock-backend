@@ -39,4 +39,19 @@ public class ShoeStockRepository
     {
         return shoeStockCrud.findAllById(ids);
     }
+
+    public List<ShoeStock> findAll()
+    {
+        return shoeStockCrud.findAll();
+    }
+
+    public List<ShoeStock> findLowStock()
+    {
+        return shoeStockCrud.findLowStock();
+    }
+
+    public List<ShoeStock> findByStock(Integer stock)
+    {
+        return shoeStockCrud.findByStock(stock);
+    }
 }
