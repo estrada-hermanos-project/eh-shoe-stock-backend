@@ -24,6 +24,11 @@ public class AuthTokenInterceptor implements HandlerInterceptor
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
     {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()))
+        {
+            return true;
+        }
+
         String requestToken = request.getHeader(AUTH_TOKEN_HEADER);
         if (!StringUtils.hasText(validAuthToken) || !validAuthToken.equals(requestToken))
         {
