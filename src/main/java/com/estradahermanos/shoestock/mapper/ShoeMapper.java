@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 public interface ShoeMapper
 {
     @Mapping(target = "supplier", source = "supplierId")
+    @Mapping(target = "createdAt", ignore = true)
     Shoe toEntity(CreateShoeRequestDTO request);
 
     @Mapping(target = "supplierName", source = "supplierName")

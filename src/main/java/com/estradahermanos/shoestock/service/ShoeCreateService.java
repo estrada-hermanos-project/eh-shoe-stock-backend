@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,7 +59,9 @@ public class ShoeCreateService
                             .message("Supplier not found")
                             .build());
 
-            Shoe saved = shoeRepository.save(shoeMapper.toEntity(request));
+            Shoe entity = shoeMapper.toEntity(request);
+            entity.setCreatedAt(LocalDate.now());
+            Shoe saved   = shoeRepository.save(entity);
             log.info("Shoe created");
             return shoeMapper.toResponse(saved, supplier.getFullName());
         }

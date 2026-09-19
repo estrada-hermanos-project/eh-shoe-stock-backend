@@ -74,6 +74,7 @@ class ShoeCreateServiceTest
 
         assertEquals("Maria Lopez", result.getSupplierName());
         verify(shoeRepository).save(entity);
+        org.junit.jupiter.api.Assertions.assertNotNull(entity.getCreatedAt());
     }
 
     @Test
