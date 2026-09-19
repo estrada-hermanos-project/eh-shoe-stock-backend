@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @Builder
@@ -34,4 +36,7 @@ public class Shoe
 
     @Column(name = "supplier", nullable = false)
     private Integer supplier;
+
+    @Column(name = "created_at")
+    private LocalDate createdAt;
 }

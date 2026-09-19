@@ -15,4 +15,12 @@ public interface OrderCrud extends JpaRepository<Order, String>
     List<Order> findByStatusOrderByOrderDeliveryDateAsc(OrderStatusEnum status);
 
     List<Order> findBySupplierOrderByOrderDeliveryDateAsc(Integer supplier);
+
+    List<Order> findByStatusAndSupplierOrderByOrderDeliveryDateAsc(OrderStatusEnum status, Integer supplier);
+
+    List<Order> findByStatusAndOrderDeliveryDateBetweenOrderByOrderDeliveryDateAsc(
+            OrderStatusEnum status, LocalDate startDate, LocalDate endDate);
+
+    List<Order> findByStatusAndSupplierAndOrderDeliveryDateBetweenOrderByOrderDeliveryDateAsc(
+            OrderStatusEnum status, Integer supplier, LocalDate startDate, LocalDate endDate);
 }

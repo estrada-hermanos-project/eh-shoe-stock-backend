@@ -45,4 +45,27 @@ public class OrderRepository
     {
         return orderCrud.findBySupplierOrderByOrderDeliveryDateAsc(supplierId);
     }
+
+    public List<Order> findAll()
+    {
+        return orderCrud.findAll();
+    }
+
+    public List<Order> findByStatusAndSupplier(OrderStatusEnum status, Integer supplierId)
+    {
+        return orderCrud.findByStatusAndSupplierOrderByOrderDeliveryDateAsc(status, supplierId);
+    }
+
+    public List<Order> findByStatusAndDateRange(OrderStatusEnum status, LocalDate startDate, LocalDate endDate)
+    {
+        return orderCrud.findByStatusAndOrderDeliveryDateBetweenOrderByOrderDeliveryDateAsc(
+                status, startDate, endDate);
+    }
+
+    public List<Order> findByStatusAndSupplierAndDateRange(OrderStatusEnum status, Integer supplierId,
+                                                           LocalDate startDate, LocalDate endDate)
+    {
+        return orderCrud.findByStatusAndSupplierAndOrderDeliveryDateBetweenOrderByOrderDeliveryDateAsc(
+                status, supplierId, startDate, endDate);
+    }
 }
