@@ -1,14 +1,62 @@
+# API Java 21 + MySQL 8 + volumen persistente de la base de datos.
+# La imagen de la API se construye con el Dockerfile de este directorio.
+
+name: eh-shoe-stock
+
 services:
   mysql:
     image: mysql:8.4
     container_name: eh-shoe-stock-mysql
+    restart: unless-stopped
     environment:
-      MYSQL_DATABASE: eh_shoe_stock
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eh-shoe-stock
+      MYSQL_USER: diego
+      MYSQL_PASSWORD: diego18
+      MYSQL_ROOT_PASSWORD: diego18
+      TZ: UTC
+    # 3306 del host ya lo usa MySQL local. 3307 es solo para entrar desde Windows
+    # (Workbench, etc.). Entre contenedores MySQL sigue en el 3306 interno.
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
-      - eh_shoe_stock_data:/var/lib/mysql
+      - ./volumes/mysql:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-udiego", "-pdiego18"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - eh-net
 
-volumes:
-  eh_shoe_stock_data:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eh-shoe-stock-backend:latest
+    container_name: eh-shoe-stock-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: eh-shoe-stock
+      DB_USERNAME: diego
+      DB_PASSWORD: diego18
+      JPA_DDL_AUTO: validate
+      AUTH_TOKEN: local-auth-token
+      JWT_SECRET: local-dev-jwt-secret-change-me-32bytes-min
+      JWT_EXPIRATION_MINUTES: 60
+      TZ: UTC
+    ports:
+      - "8080:8080"
+    networks:
+      - eh-net
+
+networks:
+  eh-net:
+    name: eh-shoe-stock-net

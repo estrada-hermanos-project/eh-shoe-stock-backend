@@ -20,6 +20,8 @@ out/
 .vscode/
 
 .env
+volumes/mysql/*
+!volumes/mysql/.gitkeep
 *.log
 hs_err_pid*
 
