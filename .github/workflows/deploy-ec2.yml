@@ -1,0 +1,100 @@
+name: deploy-ec2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un solo despliegue a la vez; los siguientes esperan en cola (no se cancelan a medias).
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: eh-shoe-stock-backend
+  APP_DIR: /home/ubuntu/project-eh/eh-shoe-stock-backend
+
+jobs:
+  deploy:
+    name: Construir y desplegar en EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Construir y exportar la imagen
+        run: |
+          docker build -t ${IMAGE_NAME}:${GITHUB_SHA} .
+          docker save ${IMAGE_NAME}:${GITHUB_SHA} | gzip > imagen.tar.gz
+          ls -lh imagen.tar.gz
+
+      - name: Copiar imagen y docker-compose.yml a la EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          source: imagen.tar.gz,docker-compose.yml
+          target: /tmp/eh-deploy
+          overwrite: true
+
+      - name: Cargar imagen y reiniciar el servicio
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          envs: IMAGE_TAG,IMAGE_NAME,APP_DIR
+          script_stop: true
+          script: |
+            set -eu
+            cd "$APP_DIR"
+
+            # Tag anterior (para revertir si el nuevo no queda saludable)
+            PREV_TAG=$(cat .current_tag 2>/dev/null || echo "")
+
+            # El disco es justo: liberar antes de cargar y borrar el tar apenas se carga
+            docker image prune -f
+            docker load < /tmp/eh-deploy/imagen.tar.gz
+            rm -f /tmp/eh-deploy/imagen.tar.gz
+            cp /tmp/eh-deploy/docker-compose.yml docker-compose.yml
+            docker tag "${IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_NAME}:latest"
+
+            docker compose up -d --no-build --remove-orphans
+
+            echo "Esperando a que el backend quede healthy..."
+            STATUS=starting
+            for i in $(seq 1 36); do
+              STATUS=$(docker inspect -f '{{.State.Health.Status}}' eh-shoe-stock-backend 2>/dev/null || echo starting)
+              [ "$STATUS" = "healthy" ] && break
+              sleep 5
+            done
+
+            if [ "$STATUS" != "healthy" ]; then
+              echo "::error::El backend no quedó healthy (estado: $STATUS). Logs:"
+              docker logs --tail 80 eh-shoe-stock-backend || true
+              if [ -n "$PREV_TAG" ] && docker image inspect "${IMAGE_NAME}:${PREV_TAG}" >/dev/null 2>&1; then
+                echo "Revirtiendo a ${PREV_TAG}"
+                docker tag "${IMAGE_NAME}:${PREV_TAG}" "${IMAGE_NAME}:latest"
+                docker compose up -d --no-build backend
+              fi
+              exit 1
+            fi
+
+            echo "$IMAGE_TAG" > .current_tag
+
+            # Limpieza: conserva solo la versión actual y la anterior
+            rm -rf /tmp/eh-deploy
+            docker images "$IMAGE_NAME" --format '{{.Tag}}' \
+              | grep -vE "^(latest|${IMAGE_TAG}|${PREV_TAG:-none})$" \
+              | xargs -r -I{} docker rmi "${IMAGE_NAME}:{}" || true
+            docker image prune -f
