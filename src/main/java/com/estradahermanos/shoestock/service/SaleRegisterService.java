@@ -8,6 +8,7 @@ import com.estradahermanos.shoestock.mapper.SaleMapper;
 import com.estradahermanos.shoestock.repository.entities.Sale;
 import com.estradahermanos.shoestock.repository.entities.ShoeStock;
 import com.estradahermanos.shoestock.repository.repositories.SaleRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.ExceptionLog;
 import com.estradahermanos.shoestock.utilities.InventoryValidator;
 import com.estradahermanos.shoestock.utilities.InventoryVariantLookup;
@@ -18,7 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -31,6 +32,7 @@ public class SaleRegisterService
     private final InventoryVariantLookup   inventoryVariantLookup;
     private final InventoryDecreaseService inventoryDecreaseService;
     private final SaleMapper               saleMapper;
+    private final BusinessDate             businessDate;
 
     /** Registra una venta, descuenta stock y devuelve el detalle de la venta. */
     @Transactional
@@ -39,7 +41,7 @@ public class SaleRegisterService
         log.info("Registering sale");
         try
         {
-            if (request == null)
+            if (Objects.isNull(request))
             {
                 throw BusinessException.builder()
                         .code(HttpStatus.BAD_REQUEST)
@@ -64,7 +66,7 @@ public class SaleRegisterService
                     .shoeStockId(variant.getId())
                     .amount(request.getStock())
                     .size(request.getSize())
-                    .saleDate(LocalDate.now())
+                    .saleDate(businessDate.today())
                     .build());
 
             log.info("Sale registered");
