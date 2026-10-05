@@ -8,6 +8,7 @@ import com.estradahermanos.shoestock.mapper.SaleMapper;
 import com.estradahermanos.shoestock.repository.entities.Sale;
 import com.estradahermanos.shoestock.repository.entities.ShoeStock;
 import com.estradahermanos.shoestock.repository.repositories.SaleRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.InventoryValidator;
 import com.estradahermanos.shoestock.utilities.InventoryVariantLookup;
 import com.estradahermanos.shoestock.utilities.SaleValidator;
@@ -19,7 +20,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,16 +49,27 @@ class SaleRegisterServiceTest
 
     private SaleRegisterService service;
 
+    private static final LocalDate BUSINESS_DAY = LocalDate.of(2026, 9, 29);
+
     @BeforeEach
     void setUp()
     {
-        service = new SaleRegisterService(
+        service = serviceAt(LocalTime.of(10, 0));
+    }
+
+    private SaleRegisterService serviceAt(LocalTime guatemalaTime)
+    {
+        Clock clock = Clock.fixed(
+                BUSINESS_DAY.atTime(guatemalaTime).atZone(BusinessDate.ZONE).toInstant(),
+                BusinessDate.ZONE);
+        return new SaleRegisterService(
                 saleRepository,
                 new SaleValidator(),
                 new InventoryValidator(),
                 inventoryVariantLookup,
                 inventoryDecreaseService,
-                saleMapper);
+                saleMapper,
+                new BusinessDate(clock));
     }
 
     private CreateSaleRequestDTO request()
@@ -84,7 +98,7 @@ class SaleRegisterServiceTest
                         .name("Oxford clasico")
                         .color("Negro")
                         .stock(2)
-                        .saleDate(LocalDate.now())
+                        .saleDate(BUSINESS_DAY)
                         .build());
 
         SaleResponseDTO result = service.register(request());
@@ -95,7 +109,7 @@ class SaleRegisterServiceTest
         assertEquals(7, saved.getShoeStockId());
         assertEquals(2, saved.getAmount());
         assertEquals(40, saved.getSize());
-        assertEquals(LocalDate.now(), saved.getSaleDate());
+        assertEquals(BUSINESS_DAY, saved.getSaleDate());
 
         ArgumentCaptor<RegisterStockRequestDTO> decreaseCaptor = ArgumentCaptor.forClass(RegisterStockRequestDTO.class);
         verify(inventoryDecreaseService).decrease(decreaseCaptor.capture());
@@ -104,6 +118,22 @@ class SaleRegisterServiceTest
 
         assertEquals(2, result.getStock());
         assertEquals("Oxford clasico", result.getName());
+    }
+
+    @Test
+    void registerKeepsGuatemalaDateAfterSixPm()
+    {
+        SaleRegisterService eveningService = serviceAt(LocalTime.of(18, 30));
+        when(inventoryVariantLookup.findVariant("Oxford clasico", "Negro", 40)).thenReturn(variant());
+        when(saleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(saleMapper.toResponse(any(), eq("Oxford clasico"), eq("Negro")))
+                .thenReturn(SaleResponseDTO.builder().saleDate(BUSINESS_DAY).build());
+
+        eveningService.register(request());
+
+        ArgumentCaptor<Sale> saleCaptor = ArgumentCaptor.forClass(Sale.class);
+        verify(saleRepository).save(saleCaptor.capture());
+        assertEquals(BUSINESS_DAY, saleCaptor.getValue().getSaleDate());
     }
 
     @Test
