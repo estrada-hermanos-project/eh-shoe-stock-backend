@@ -8,6 +8,7 @@ import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.Supplier;
 import com.estradahermanos.shoestock.repository.repositories.OrderRepository;
 import com.estradahermanos.shoestock.repository.repositories.SupplierRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.OrderStatusEnum;
 import com.estradahermanos.shoestock.utilities.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,12 +46,27 @@ class OrderCreateServiceTest
     @Mock
     private OrderMapper orderMapper;
 
+    private static final LocalDate BUSINESS_DAY = LocalDate.of(2026, 10, 1);
+
     private OrderCreateService service;
 
     @BeforeEach
     void setUp()
     {
-        service = new OrderCreateService(orderRepository, supplierRepository, new OrderValidator(), orderMapper);
+        service = serviceAt(LocalTime.of(10, 0));
+    }
+
+    private OrderCreateService serviceAt(LocalTime guatemalaTime)
+    {
+        Clock clock = Clock.fixed(
+                BUSINESS_DAY.atTime(guatemalaTime).atZone(BusinessDate.ZONE).toInstant(),
+                BusinessDate.ZONE);
+        return new OrderCreateService(
+                orderRepository,
+                supplierRepository,
+                new OrderValidator(),
+                orderMapper,
+                new BusinessDate(clock));
     }
 
     private CreateOrderRequestDTO request()
@@ -71,7 +89,7 @@ class OrderCreateServiceTest
                         .orderId("ORDEN-101")
                         .supplierName("Maria Lopez")
                         .status(OrderStatusEnum.PENDIENTE)
-                        .creationDate(LocalDate.now())
+                        .creationDate(BUSINESS_DAY)
                         .details(List.of())
                         .build());
 
@@ -83,9 +101,31 @@ class OrderCreateServiceTest
         assertEquals("ORDEN-101", saved.getId());
         assertEquals(2, saved.getSupplier());
         assertEquals(OrderStatusEnum.PENDIENTE, saved.getStatus());
-        assertEquals(LocalDate.now(), saved.getOrderDeliveryDate());
+        assertEquals(BUSINESS_DAY, saved.getOrderDeliveryDate());
         assertEquals("Maria Lopez", result.getSupplierName());
         assertTrue(result.getDetails().isEmpty());
+    }
+
+    @Test
+    void createKeepsGuatemalaDateAfterSixPm()
+    {
+        OrderCreateService eveningService = serviceAt(LocalTime.of(18, 30));
+        when(orderRepository.existsById("ORDEN-101")).thenReturn(false);
+        when(supplierRepository.findById(2)).thenReturn(Optional.of(
+                Supplier.builder().id(2).fullName("Maria Lopez").phone("55512345").build()));
+        when(orderRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(orderMapper.toResponse(any(), eq("Maria Lopez"), eq(List.of())))
+                .thenReturn(OrderResponseDTO.builder()
+                        .orderId("ORDEN-101")
+                        .creationDate(BUSINESS_DAY)
+                        .details(List.of())
+                        .build());
+
+        eveningService.create(request());
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(captor.capture());
+        assertEquals(BUSINESS_DAY, captor.getValue().getOrderDeliveryDate());
     }
 
     @Test

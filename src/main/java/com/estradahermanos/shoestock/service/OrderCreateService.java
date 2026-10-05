@@ -8,6 +8,7 @@ import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.Supplier;
 import com.estradahermanos.shoestock.repository.repositories.OrderRepository;
 import com.estradahermanos.shoestock.repository.repositories.SupplierRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.ExceptionLog;
 import com.estradahermanos.shoestock.utilities.OrderStatusEnum;
 import com.estradahermanos.shoestock.utilities.OrderValidator;
@@ -17,8 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -29,6 +30,7 @@ public class OrderCreateService
     private final SupplierRepository supplierRepository;
     private final OrderValidator     orderValidator;
     private final OrderMapper        orderMapper;
+    private final BusinessDate       businessDate;
 
     /** Crea la cabecera del pedido con status PENDIENTE y fecha actual. */
     @Transactional
@@ -37,7 +39,7 @@ public class OrderCreateService
         log.info("Creating order");
         try
         {
-            if (request == null)
+            if (Objects.isNull(request))
             {
                 throw BusinessException.builder()
                         .code(HttpStatus.BAD_REQUEST)
@@ -64,7 +66,7 @@ public class OrderCreateService
             Order saved = orderRepository.save(Order.builder()
                     .id(request.getId())
                     .supplier(request.getSupplierId())
-                    .orderDeliveryDate(LocalDate.now())
+                    .orderDeliveryDate(businessDate.today())
                     .status(OrderStatusEnum.PENDIENTE)
                     .build());
 
