@@ -4,12 +4,28 @@ import com.estradahermanos.shoestock.error.BusinessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class InventoryValidator
 {
+    public boolean requiresExactVariant(String color, Integer size)
+    {
+        boolean hasColor = !Objects.isNull(color) && !color.isBlank();
+        boolean hasSize = !Objects.isNull(size);
+        if (hasColor != hasSize)
+        {
+            throw BusinessException.builder()
+                    .code(HttpStatus.BAD_REQUEST)
+                    .message("Color and size must be sent together")
+                    .build();
+        }
+        return hasColor;
+    }
+
     public void validateAmount(Integer amount)
     {
-        if (amount == null || amount < 1)
+        if (Objects.isNull(amount) || amount < 1)
         {
             throw BusinessException.builder()
                     .code(HttpStatus.BAD_REQUEST)
@@ -21,7 +37,7 @@ public class InventoryValidator
     public void validateRegister(Integer stock, Integer size)
     {
         validateAmount(stock);
-        if (size == null || size < 1)
+        if (Objects.isNull(size) || size < 1)
         {
             throw BusinessException.builder()
                     .code(HttpStatus.BAD_REQUEST)

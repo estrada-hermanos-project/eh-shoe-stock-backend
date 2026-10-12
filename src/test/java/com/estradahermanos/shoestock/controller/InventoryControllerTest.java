@@ -10,6 +10,8 @@ import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryQueryService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
+import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.utilities.InventoryValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -28,7 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = InventoryController.class)
-@Import({SecurityConfig.class, WebMvcConfig.class, AuthTokenInterceptor.class, ControllerExceptionHandler.class})
+@Import({SecurityConfig.class, WebMvcConfig.class, AuthTokenInterceptor.class, ControllerExceptionHandler.class,
+        InventoryValidator.class})
 @TestPropertySource(properties = "app.auth-token=test-token")
 class InventoryControllerTest
 {
@@ -46,6 +51,9 @@ class InventoryControllerTest
 
     @MockitoBean
     private InventoryQueryService inventoryQueryService;
+
+    @MockitoBean
+    private InventoryStyleQueryService inventoryStyleQueryService;
 
     private RegisterStockRequestDTO request()
     {
@@ -109,5 +117,33 @@ class InventoryControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("Oxford clasico"))
                 .andExpect(jsonPath("$.data.stock").value(12));
+    }
+
+    @Test
+    void findByShoeCodeReturnsVariants() throws Exception
+    {
+        when(inventoryStyleQueryService.findByShoeCode("OXF-001")).thenReturn(List.of(
+                StockQueryResponseDTO.builder().name("Oxford clasico").color("Negro").size(40).stock(12).build(),
+                StockQueryResponseDTO.builder().name("Oxford clasico").color("Cafe").size(41).stock(3).build()));
+
+        mockMvc.perform(get("/api/v1/inventory")
+                        .header("auth-token", "test-token")
+                        .param("shoe_id", "OXF-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].color").value("Negro"))
+                .andExpect(jsonPath("$.data[0].size").value(40))
+                .andExpect(jsonPath("$.data[0].stock").value(12))
+                .andExpect(jsonPath("$.data[1].stock").value(3));
+    }
+
+    @Test
+    void findStockRejectsColorWithoutSize() throws Exception
+    {
+        mockMvc.perform(get("/api/v1/inventory")
+                        .header("auth-token", "test-token")
+                        .param("shoe_id", "OXF-001")
+                        .param("color", "Negro"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Color and size must be sent together"));
     }
 }
