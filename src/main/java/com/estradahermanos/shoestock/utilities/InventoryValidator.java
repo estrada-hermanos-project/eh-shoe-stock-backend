@@ -9,20 +9,6 @@ import java.util.Objects;
 @Component
 public class InventoryValidator
 {
-    public boolean requiresExactVariant(String color, Integer size)
-    {
-        boolean hasColor = !Objects.isNull(color) && !color.isBlank();
-        boolean hasSize = !Objects.isNull(size);
-        if (hasColor != hasSize)
-        {
-            throw BusinessException.builder()
-                    .code(HttpStatus.BAD_REQUEST)
-                    .message("Color and size must be sent together")
-                    .build();
-        }
-        return hasColor;
-    }
-
     public void validateAmount(Integer amount)
     {
         if (Objects.isNull(amount) || amount < 1)
