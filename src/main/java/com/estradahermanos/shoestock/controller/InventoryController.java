@@ -5,6 +5,8 @@ import com.estradahermanos.shoestock.dto.response.ResponseSuccessDTO;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryQueryService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
+import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.utilities.InventoryValidator;
 import com.estradahermanos.shoestock.utilities.ResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,9 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Inventory", description = "Shoe stock (inventory)")
 public class InventoryController
 {
-    private final InventoryRegisterService inventoryRegisterService;
-    private final InventoryDecreaseService inventoryDecreaseService;
-    private final InventoryQueryService    inventoryQueryService;
+    private final InventoryRegisterService   inventoryRegisterService;
+    private final InventoryDecreaseService   inventoryDecreaseService;
+    private final InventoryQueryService      inventoryQueryService;
+    private final InventoryStyleQueryService inventoryStyleQueryService;
+    private final InventoryValidator         inventoryValidator;
 
     @PostMapping
     @Operation(summary = "Register incoming merchandise (create or increase a variant stock)")
@@ -44,12 +48,18 @@ public class InventoryController
     }
 
     @GetMapping
-    @Operation(summary = "Query the stock of a variant by shoe, color and size")
+    @Operation(summary = "Query stock by shoe code, or by shoe, color and size")
     public ResponseEntity<ResponseSuccessDTO> findStock(
             @Parameter(description = "Shoe code") @RequestParam("shoe_id") String shoeId,
-            @Parameter(description = "Variant color") @RequestParam String color,
-            @Parameter(description = "Variant size") @RequestParam Integer size)
+            @Parameter(description = "Variant color, optional when querying the whole style")
+            @RequestParam(required = false) String color,
+            @Parameter(description = "Variant size, optional when querying the whole style")
+            @RequestParam(required = false) Integer size)
     {
-        return ResponseBuilder.success(HttpStatus.OK, inventoryQueryService.findStock(shoeId, color, size));
+        if (inventoryValidator.requiresExactVariant(color, size))
+        {
+            return ResponseBuilder.success(HttpStatus.OK, inventoryQueryService.findStock(shoeId, color, size));
+        }
+        return ResponseBuilder.success(HttpStatus.OK, inventoryStyleQueryService.findByShoeCode(shoeId));
     }
 }
