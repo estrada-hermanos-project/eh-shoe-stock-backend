@@ -30,6 +30,16 @@ public class ShoeStockRepository
         return shoeStockCrud.findByShoeId(shoeId);
     }
 
+    public List<ShoeStock> findByShoeIdAndColor(String shoeId, String color)
+    {
+        return shoeStockCrud.findByShoeIdAndColor(shoeId, color);
+    }
+
+    public List<ShoeStock> findByShoeIdAndSize(String shoeId, Integer size)
+    {
+        return shoeStockCrud.findByShoeIdAndSize(shoeId, size);
+    }
+
     public List<ShoeStock> findByShoeNameAndColorAndSize(String name, String color, Integer size)
     {
         return shoeStockCrud.findByShoeNameAndColorAndSize(name, color, size);

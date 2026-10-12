@@ -14,6 +14,10 @@ public interface ShoeStockCrud extends JpaRepository<ShoeStock, Integer>
 
     List<ShoeStock> findByShoeId(String shoeId);
 
+    List<ShoeStock> findByShoeIdAndColor(String shoeId, String color);
+
+    List<ShoeStock> findByShoeIdAndSize(String shoeId, Integer size);
+
     @Query("""
            SELECT ss FROM ShoeStock ss, Shoe s
             WHERE ss.shoeId = s.code
