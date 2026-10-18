@@ -20,6 +20,27 @@ public interface SaleCrud extends JpaRepository<Sale, Integer>
     List<Sale> findBySaleDate(LocalDate saleDate);
 
     @Query("""
+           SELECT s
+             FROM Sale s, ShoeStock ss
+            WHERE s.shoeStockId = ss.id
+              AND s.saleDate BETWEEN :startDate AND :endDate
+              AND ss.shoeId = :shoeCode
+           """)
+    List<Sale> findBySaleDateBetweenAndShoeCode(@Param("startDate") LocalDate startDate,
+                                                @Param("endDate") LocalDate endDate,
+                                                @Param("shoeCode") String shoeCode);
+
+    @Query("""
+           SELECT s
+             FROM Sale s, ShoeStock ss
+            WHERE s.shoeStockId = ss.id
+              AND s.saleDate = :saleDate
+              AND ss.shoeId = :shoeCode
+           """)
+    List<Sale> findBySaleDateAndShoeCode(@Param("saleDate") LocalDate saleDate,
+                                         @Param("shoeCode") String shoeCode);
+
+    @Query("""
            SELECT s.shoeStockId AS shoeStockId, SUM(s.amount) AS totalAmount
              FROM Sale s
             WHERE (:startDate IS NULL OR s.saleDate >= :startDate)

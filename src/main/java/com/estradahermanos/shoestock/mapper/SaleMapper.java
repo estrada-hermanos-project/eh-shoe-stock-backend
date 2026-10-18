@@ -9,7 +9,8 @@ import org.mapstruct.Mapping;
 public interface SaleMapper
 {
     @Mapping(target = "stock", source = "sale.amount")
+    @Mapping(target = "shoeCode", source = "shoeCode")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "color", source = "color")
-    SaleResponseDTO toResponse(Sale sale, String name, String color);
+    SaleResponseDTO toResponse(Sale sale, String shoeCode, String name, String color);
 }

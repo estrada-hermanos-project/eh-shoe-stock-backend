@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,8 +33,8 @@ public class SaleQueryService
     private final ShoeRepository      shoeRepository;
     private final SaleMapper          saleMapper;
 
-    /** Historial de ventas entre dos fechas, inclusive. */
-    public List<SaleResponseDTO> findByDateRange(LocalDate startDate, LocalDate endDate)
+    /** Historial de ventas entre dos fechas, inclusive. shoeCode vacio no filtra. */
+    public List<SaleResponseDTO> findByDateRange(LocalDate startDate, LocalDate endDate, String shoeCode)
     {
         log.info("Querying sales by date range");
         try
@@ -45,7 +46,7 @@ public class SaleQueryService
                         .message("start_date must not be after end_date")
                         .build();
             }
-            return mapSales(saleRepository.findBySaleDateBetween(startDate, endDate));
+            return mapSales(salesBetween(startDate, endDate, normalizeShoeCode(shoeCode)));
         }
         catch (BusinessException exception)
         {
@@ -61,13 +62,13 @@ public class SaleQueryService
         }
     }
 
-    /** Historial de ventas de una fecha especifica. */
-    public List<SaleResponseDTO> findByDate(LocalDate date)
+    /** Historial de ventas de una fecha especifica. shoeCode vacio no filtra. */
+    public List<SaleResponseDTO> findByDate(LocalDate date, String shoeCode)
     {
         log.info("Querying sales by date");
         try
         {
-            return mapSales(saleRepository.findBySaleDate(date));
+            return mapSales(salesOn(date, normalizeShoeCode(shoeCode)));
         }
         catch (Exception exception)
         {
@@ -104,13 +105,48 @@ public class SaleQueryService
                 .collect(Collectors.toMap(Shoe::getCode, Shoe::getName));
 
         return sales.stream()
-                .map(sale ->
-                {
-                    ShoeStock variant = variants.get(sale.getShoeStockId());
-                    String    color   = variant != null ? variant.getColor() : null;
-                    String    name    = variant != null ? shoeNames.get(variant.getShoeId()) : null;
-                    return saleMapper.toResponse(sale, name, color);
-                })
+                .map(sale -> toSaleResponse(sale, variants, shoeNames))
                 .toList();
+    }
+
+    private List<Sale> salesBetween(LocalDate startDate, LocalDate endDate, String shoeCode)
+    {
+        if (Objects.isNull(shoeCode))
+        {
+            return saleRepository.findBySaleDateBetween(startDate, endDate);
+        }
+        return saleRepository.findBySaleDateBetweenAndShoeCode(startDate, endDate, shoeCode);
+    }
+
+    private List<Sale> salesOn(LocalDate date, String shoeCode)
+    {
+        if (Objects.isNull(shoeCode))
+        {
+            return saleRepository.findBySaleDate(date);
+        }
+        return saleRepository.findBySaleDateAndShoeCode(date, shoeCode);
+    }
+
+    private String normalizeShoeCode(String shoeCode)
+    {
+        if (Objects.isNull(shoeCode) || shoeCode.isBlank())
+        {
+            return null;
+        }
+        return shoeCode.trim();
+    }
+
+    private SaleResponseDTO toSaleResponse(Sale sale, Map<Integer, ShoeStock> variants, Map<String, String> shoeNames)
+    {
+        ShoeStock variant = variants.get(sale.getShoeStockId());
+        if (Objects.isNull(variant))
+        {
+            return saleMapper.toResponse(sale, null, null, null);
+        }
+        return saleMapper.toResponse(
+                sale,
+                variant.getShoeId(),
+                shoeNames.get(variant.getShoeId()),
+                variant.getColor());
     }
 }
