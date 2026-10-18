@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +14,8 @@ public interface ShoeStockCrud extends JpaRepository<ShoeStock, Integer>
     Optional<ShoeStock> findByShoeIdAndColorAndSize(String shoeId, String color, Integer size);
 
     List<ShoeStock> findByShoeId(String shoeId);
+
+    List<ShoeStock> findByShoeIdIn(Collection<String> shoeIds);
 
     List<ShoeStock> findByShoeIdAndColor(String shoeId, String color);
 

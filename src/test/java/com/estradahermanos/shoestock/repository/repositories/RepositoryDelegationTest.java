@@ -70,6 +70,7 @@ class RepositoryDelegationTest
         ShoeStock variant = ShoeStock.builder().id(15).shoeId("OXF-001").color("Negro").size(42).stock(1).build();
         when(crud.save(variant)).thenReturn(variant);
         when(crud.findByShoeIdAndColorAndSize("OXF-001", "Negro", 42)).thenReturn(Optional.of(variant));
+        when(crud.findByShoeIdIn(List.of("OXF-001"))).thenReturn(List.of(variant));
         when(crud.findByShoeNameAndColorAndSize("Oxford", "Negro", 42)).thenReturn(List.of(variant));
         when(crud.findById(15)).thenReturn(Optional.of(variant));
         when(crud.findAllById(List.of(15))).thenReturn(List.of(variant));
@@ -79,6 +80,7 @@ class RepositoryDelegationTest
 
         assertSame(variant, repository.save(variant));
         assertEquals(variant, repository.findByShoeIdAndColorAndSize("OXF-001", "Negro", 42).orElseThrow());
+        assertEquals(1, repository.findByShoeIdIn(List.of("OXF-001")).size());
         assertEquals(1, repository.findByShoeNameAndColorAndSize("Oxford", "Negro", 42).size());
         assertEquals(variant, repository.findById(15).orElseThrow());
         assertEquals(1, repository.findAllById(List.of(15)).size());

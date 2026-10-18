@@ -12,9 +12,11 @@ import java.util.List;
 public interface OrderMapper
 {
     @Mapping(target = "orderId", source = "order.id")
+    @Mapping(target = "supplierId", source = "order.supplier")
     @Mapping(target = "supplierName", source = "supplierName")
     @Mapping(target = "status", source = "order.status")
     @Mapping(target = "creationDate", source = "order.orderDeliveryDate")
+    @Mapping(target = "receivedDate", source = "order.receivedDate")
     @Mapping(target = "details", source = "details")
     OrderResponseDTO toResponse(Order order, String supplierName, List<OrderDetailResponseDTO> details);
 }

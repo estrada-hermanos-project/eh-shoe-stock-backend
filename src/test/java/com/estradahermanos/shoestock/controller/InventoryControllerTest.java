@@ -7,9 +7,11 @@ import com.estradahermanos.shoestock.dto.request.RegisterStockRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ShoeStockResponseDTO;
 import com.estradahermanos.shoestock.dto.response.StockQueryResponseDTO;
 import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
+import com.estradahermanos.shoestock.dto.response.SupplierVariantResponseDTO;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
 import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.service.InventorySupplierQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,9 @@ class InventoryControllerTest
 
     @MockitoBean
     private InventoryStyleQueryService inventoryStyleQueryService;
+
+    @MockitoBean
+    private InventorySupplierQueryService inventorySupplierQueryService;
 
     private RegisterStockRequestDTO request()
     {
@@ -144,5 +149,25 @@ class InventoryControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].color").value("Negro"))
                 .andExpect(jsonPath("$.data[0].size").value(40));
+    }
+
+    @Test
+    void findBySupplierReturnsThatSuppliersVariants() throws Exception
+    {
+        when(inventorySupplierQueryService.findBySupplier(2)).thenReturn(List.of(
+                SupplierVariantResponseDTO.builder()
+                        .shoeStockId(15)
+                        .shoeCode("OXF-001")
+                        .shoeName("Oxford clasico")
+                        .color("Negro")
+                        .size(40)
+                        .build()));
+
+        mockMvc.perform(get("/api/v1/inventory/supplier/2")
+                        .header("auth-token", "test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].shoe_stock_id").value(15))
+                .andExpect(jsonPath("$.data[0].shoe_code").value("OXF-001"))
+                .andExpect(jsonPath("$.data[0].shoe_name").value("Oxford clasico"));
     }
 }

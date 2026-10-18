@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -198,15 +199,21 @@ public class OrderQueryService
                     List<OrderDetailResponseDTO> detailDtos = detailsByOrder
                             .getOrDefault(order.getId(), List.of())
                             .stream()
-                            .map(detail ->
-                            {
-                                ShoeStock variant   = variants.get(detail.getShoeStockId());
-                                String    shoeName  = variant != null ? shoeNames.get(variant.getShoeId()) : null;
-                                return orderDetailMapper.toResponse(detail, shoeName);
-                            })
+                            .map(detail -> toDetail(detail, variants, shoeNames))
                             .toList();
                     return orderMapper.toResponse(order, supplierNames.get(order.getSupplier()), detailDtos);
                 })
                 .toList();
+    }
+
+    private OrderDetailResponseDTO toDetail(OrderDetail detail, Map<Integer, ShoeStock> variants,
+                                            Map<String, String> shoeNames)
+    {
+        ShoeStock variant = variants.get(detail.getShoeStockId());
+        if (Objects.isNull(variant))
+        {
+            return orderDetailMapper.toResponse(detail, null, null);
+        }
+        return orderDetailMapper.toResponse(detail, variant.getShoeId(), shoeNames.get(variant.getShoeId()));
     }
 }
