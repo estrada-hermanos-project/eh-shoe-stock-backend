@@ -21,6 +21,9 @@ public class OrderResponseDTO
     @JsonProperty("order_id")
     private String orderId;
 
+    @JsonProperty("supplier_id")
+    private Integer supplierId;
+
     @JsonProperty("supplier_name")
     private String supplierName;
 
@@ -28,6 +31,9 @@ public class OrderResponseDTO
 
     @JsonProperty("creation_date")
     private LocalDate creationDate;
+
+    @JsonProperty("received_date")
+    private LocalDate receivedDate;
 
     private List<OrderDetailResponseDTO> details;
 }

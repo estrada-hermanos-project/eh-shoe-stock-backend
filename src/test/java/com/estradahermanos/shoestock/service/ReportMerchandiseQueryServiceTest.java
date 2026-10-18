@@ -98,7 +98,7 @@ class ReportMerchandiseQueryServiceTest
         when(catalogLookup.variantsById(anyCollection())).thenReturn(Map.of(15, variant));
         when(catalogLookup.shoesByCode(anyCollection())).thenReturn(Map.of(
                 "OXF-001", Shoe.builder().code("OXF-001").name("Oxford").supplier(2).build()));
-        when(orderDetailMapper.toResponse(eq(detail), eq("Oxford")))
+        when(orderDetailMapper.toResponse(eq(detail), eq("OXF-001"), eq("Oxford")))
                 .thenReturn(OrderDetailResponseDTO.builder().shoeStockId(15).shoeName("Oxford").amount(4).build());
         when(reportMerchandiseMapper.toPending(eq(order), eq("Maria Lopez"), anyLong(), eq(4), anyList()))
                 .thenReturn(PendingOrderReportDTO.builder()
@@ -149,9 +149,10 @@ class ReportMerchandiseQueryServiceTest
         when(catalogLookup.variantsById(anyCollection())).thenReturn(Map.of(15, variant));
         when(catalogLookup.shoesByCode(anyCollection())).thenReturn(Map.of(
                 "OXF-001", Shoe.builder().code("OXF-001").name("Oxford").supplier(2).build()));
-        when(orderDetailMapper.toResponse(any(OrderDetail.class), nullable(String.class)))
+        when(orderDetailMapper.toResponse(any(OrderDetail.class), nullable(String.class), nullable(String.class)))
                 .thenAnswer(invocation -> OrderDetailResponseDTO.builder()
-                        .shoeName(invocation.getArgument(1, String.class))
+                        .shoeCode(invocation.getArgument(1, String.class))
+                        .shoeName(invocation.getArgument(2, String.class))
                         .amount(invocation.getArgument(0, OrderDetail.class).getAmount())
                         .build());
         when(reportMerchandiseMapper.toReceived(eq(order), eq("Maria Lopez"), eq(5), anyList()))

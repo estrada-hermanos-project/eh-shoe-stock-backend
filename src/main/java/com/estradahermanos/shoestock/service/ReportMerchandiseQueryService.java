@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -308,13 +309,20 @@ public class ReportMerchandiseQueryService
         Map<String, Shoe> shoes = catalogLookup.shoesByCode(
                 variants.values().stream().map(ShoeStock::getShoeId).distinct().toList());
         return details.stream()
-                .map(detail ->
-                {
-                    ShoeStock variant = variants.get(detail.getShoeStockId());
-                    Shoe      shoe    = variant == null ? null : shoes.get(variant.getShoeId());
-                    return orderDetailMapper.toResponse(detail, shoe == null ? null : shoe.getName());
-                })
+                .map(detail -> toDetail(detail, variants, shoes))
                 .toList();
+    }
+
+    private OrderDetailResponseDTO toDetail(OrderDetail detail, Map<Integer, ShoeStock> variants, Map<String, Shoe> shoes)
+    {
+        ShoeStock variant = variants.get(detail.getShoeStockId());
+        if (Objects.isNull(variant))
+        {
+            return orderDetailMapper.toResponse(detail, null, null);
+        }
+        Shoe shoe = shoes.get(variant.getShoeId());
+        String shoeName = Objects.isNull(shoe) ? null : shoe.getName();
+        return orderDetailMapper.toResponse(detail, variant.getShoeId(), shoeName);
     }
 
     private Map<String, List<OrderDetail>> detailsByOrder(List<Order> orders)

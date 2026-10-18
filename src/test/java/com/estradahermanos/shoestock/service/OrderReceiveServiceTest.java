@@ -6,19 +6,24 @@ import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.OrderDetail;
 import com.estradahermanos.shoestock.repository.repositories.OrderDetailRepository;
 import com.estradahermanos.shoestock.repository.repositories.OrderRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.OrderStatusEnum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -46,8 +51,20 @@ class OrderReceiveServiceTest
     @BeforeEach
     void setUp()
     {
-        service = new OrderReceiveService(
-                orderRepository, orderDetailRepository, inventoryIncreaseService, orderQueryService);
+        service = serviceAt(LocalTime.of(18, 30));
+    }
+
+    private OrderReceiveService serviceAt(LocalTime guatemalaTime)
+    {
+        Clock clock = Clock.fixed(
+                LocalDate.of(2026, 9, 29).atTime(guatemalaTime).atZone(BusinessDate.ZONE).toInstant(),
+                BusinessDate.ZONE);
+        return new OrderReceiveService(
+                orderRepository,
+                orderDetailRepository,
+                inventoryIncreaseService,
+                orderQueryService,
+                new BusinessDate(clock));
     }
 
     private Order pendingOrder()
@@ -78,7 +95,11 @@ class OrderReceiveServiceTest
 
         verify(inventoryIncreaseService).increaseByStockId(15, 4);
         verify(inventoryIncreaseService).increaseByStockId(16, 2);
-        verify(orderRepository).save(any());
+        ArgumentCaptor<Order> saved = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(saved.capture());
+        assertEquals(OrderStatusEnum.RECIBIDA, saved.getValue().getStatus());
+        assertEquals(LocalDate.of(2026, 9, 29), saved.getValue().getReceivedDate());
+        assertNull(pendingOrder().getReceivedDate());
         assertEquals(OrderStatusEnum.RECIBIDA, result.getStatus());
     }
 

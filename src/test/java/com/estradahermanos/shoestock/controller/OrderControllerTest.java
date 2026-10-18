@@ -64,8 +64,10 @@ class OrderControllerTest
                 .supplierName("Maria Lopez")
                 .status(OrderStatusEnum.PENDIENTE)
                 .creationDate(LocalDate.of(2026, 9, 16))
+                .supplierId(2)
                 .details(List.of(OrderDetailResponseDTO.builder()
                         .shoeStockId(15)
+                        .shoeCode("OXF-001")
                         .shoeName("Oxford clasico")
                         .amount(4)
                         .build()))
@@ -97,8 +99,11 @@ class OrderControllerTest
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.order_id").value("ORDEN-101"))
                 .andExpect(jsonPath("$.data.supplier_name").value("Maria Lopez"))
+                .andExpect(jsonPath("$.data.supplier_id").value(2))
                 .andExpect(jsonPath("$.data.status").value("PENDIENTE"))
-                .andExpect(jsonPath("$.data.creation_date").value("2026-09-16"));
+                .andExpect(jsonPath("$.data.creation_date").value("2026-09-16"))
+                .andExpect(jsonPath("$.data.received_date").isEmpty())
+                .andExpect(jsonPath("$.data.details[0].shoe_code").value("OXF-001"));
     }
 
     @Test
@@ -173,11 +178,13 @@ class OrderControllerTest
     {
         OrderResponseDTO received = orderResponse();
         received.setStatus(OrderStatusEnum.RECIBIDA);
+        received.setReceivedDate(LocalDate.of(2026, 9, 29));
         when(orderReceiveService.receive("ORDEN-101")).thenReturn(received);
 
         mockMvc.perform(post("/api/v1/orders/ORDEN-101/receive")
                         .header("auth-token", "test-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("RECIBIDA"));
+                .andExpect(jsonPath("$.data.status").value("RECIBIDA"))
+                .andExpect(jsonPath("$.data.received_date").value("2026-09-29"));
     }
 }

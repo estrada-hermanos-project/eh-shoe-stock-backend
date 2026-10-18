@@ -5,6 +5,7 @@ import com.estradahermanos.shoestock.dto.response.ResponseSuccessDTO;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
 import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.service.InventorySupplierQueryService;
 import com.estradahermanos.shoestock.utilities.ResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +29,8 @@ public class InventoryController
 {
     private final InventoryRegisterService   inventoryRegisterService;
     private final InventoryDecreaseService   inventoryDecreaseService;
-    private final InventoryStyleQueryService inventoryStyleQueryService;
+    private final InventoryStyleQueryService    inventoryStyleQueryService;
+    private final InventorySupplierQueryService inventorySupplierQueryService;
 
     @PostMapping
     @Operation(summary = "Register incoming merchandise (create or increase a variant stock)")
@@ -53,5 +56,13 @@ public class InventoryController
             @RequestParam(required = false) Integer size)
     {
         return ResponseBuilder.success(HttpStatus.OK, inventoryStyleQueryService.findByShoeCode(shoeId, color, size));
+    }
+
+    @GetMapping("/supplier/{supplierId}")
+    @Operation(summary = "Stock variants of the styles made by one supplier")
+    public ResponseEntity<ResponseSuccessDTO> findBySupplier(
+            @Parameter(description = "Supplier id") @PathVariable("supplierId") Integer supplierId)
+    {
+        return ResponseBuilder.success(HttpStatus.OK, inventorySupplierQueryService.findBySupplier(supplierId));
     }
 }

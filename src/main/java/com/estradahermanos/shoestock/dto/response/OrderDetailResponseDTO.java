@@ -17,6 +17,9 @@ public class OrderDetailResponseDTO
     @JsonProperty("shoe_stock_id")
     private Integer shoeStockId;
 
+    @JsonProperty("shoe_code")
+    private String shoeCode;
+
     @JsonProperty("shoe_name")
     private String shoeName;
 
