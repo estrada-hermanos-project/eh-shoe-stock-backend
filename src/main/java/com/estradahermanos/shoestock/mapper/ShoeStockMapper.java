@@ -1,5 +1,6 @@
 package com.estradahermanos.shoestock.mapper;
 
+import com.estradahermanos.shoestock.dto.request.CreateVariantRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ShoeStockResponseDTO;
 import com.estradahermanos.shoestock.dto.response.StockQueryResponseDTO;
 import com.estradahermanos.shoestock.dto.response.SupplierVariantResponseDTO;
@@ -11,6 +12,11 @@ import org.mapstruct.Mapping;
 public interface ShoeStockMapper
 {
     ShoeStockResponseDTO toResponse(ShoeStock shoeStock);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "stock", expression = "java(0)")
+    @Mapping(target = "minStock", expression = "java(0)")
+    ShoeStock toNewVariant(CreateVariantRequestDTO request);
 
     @Mapping(target = "name", source = "name")
     StockQueryResponseDTO toStockQuery(ShoeStock shoeStock, String name);

@@ -1,10 +1,12 @@
 package com.estradahermanos.shoestock.controller;
 
+import com.estradahermanos.shoestock.dto.request.CreateVariantRequestDTO;
 import com.estradahermanos.shoestock.dto.request.RegisterStockRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ResponseSuccessDTO;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
 import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.service.InventoryVariantCreateService;
 import com.estradahermanos.shoestock.service.InventorySupplierQueryService;
 import com.estradahermanos.shoestock.utilities.ResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Inventory", description = "Shoe stock (inventory)")
 public class InventoryController
 {
-    private final InventoryRegisterService   inventoryRegisterService;
+    private final InventoryRegisterService      inventoryRegisterService;
+    private final InventoryVariantCreateService inventoryVariantCreateService;
     private final InventoryDecreaseService   inventoryDecreaseService;
     private final InventoryStyleQueryService    inventoryStyleQueryService;
     private final InventorySupplierQueryService inventorySupplierQueryService;
@@ -37,6 +40,13 @@ public class InventoryController
     public ResponseEntity<ResponseSuccessDTO> register(@RequestBody RegisterStockRequestDTO request)
     {
         return ResponseBuilder.success(HttpStatus.OK, inventoryRegisterService.register(request));
+    }
+
+    @PostMapping("/variants")
+    @Operation(summary = "Create a color and size variant with zero stock")
+    public ResponseEntity<ResponseSuccessDTO> createVariant(@RequestBody CreateVariantRequestDTO request)
+    {
+        return ResponseBuilder.success(HttpStatus.OK, inventoryVariantCreateService.create(request));
     }
 
     @PostMapping("/decrease")

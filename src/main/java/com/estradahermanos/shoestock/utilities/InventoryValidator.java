@@ -23,6 +23,23 @@ public class InventoryValidator
     public void validateRegister(Integer stock, Integer size)
     {
         validateAmount(stock);
+        validateSize(size);
+    }
+
+    public void validateVariant(String color, Integer size)
+    {
+        if (Objects.isNull(color) || color.isBlank())
+        {
+            throw BusinessException.builder()
+                    .code(HttpStatus.BAD_REQUEST)
+                    .message("Color is required")
+                    .build();
+        }
+        validateSize(size);
+    }
+
+    private void validateSize(Integer size)
+    {
         if (Objects.isNull(size) || size < 1)
         {
             throw BusinessException.builder()
