@@ -49,6 +49,7 @@ class SaleControllerTest
     {
         return SaleResponseDTO.builder()
                 .size(40)
+                .shoeCode("OXF-001")
                 .name("Oxford clasico")
                 .color("Negro")
                 .stock(2)
@@ -84,6 +85,7 @@ class SaleControllerTest
                 .andExpect(jsonPath("$.data.size").value(40))
                 .andExpect(jsonPath("$.data.name").value("Oxford clasico"))
                 .andExpect(jsonPath("$.data.color").value("Negro"))
+                .andExpect(jsonPath("$.data.shoe_code").value("OXF-001"))
                 .andExpect(jsonPath("$.data.stock").value(2))
                 .andExpect(jsonPath("$.data.sale_date").value("2026-09-14"));
     }
@@ -91,7 +93,7 @@ class SaleControllerTest
     @Test
     void findByRangeReturnsList() throws Exception
     {
-        when(saleQueryService.findByDateRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 14)))
+        when(saleQueryService.findByDateRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 14), null))
                 .thenReturn(List.of(saleResponse()));
 
         mockMvc.perform(get("/api/v1/sales")
@@ -99,14 +101,42 @@ class SaleControllerTest
                         .param("start_date", "2026-09-01")
                         .param("end_date", "2026-09-14"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].shoe_code").value("OXF-001"))
                 .andExpect(jsonPath("$.data[0].name").value("Oxford clasico"))
                 .andExpect(jsonPath("$.data[0].sale_date").value("2026-09-14"));
     }
 
     @Test
+    void findByRangeFiltersByShoeCode() throws Exception
+    {
+        when(saleQueryService.findByDateRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 14), "OXF-001"))
+                .thenReturn(List.of(saleResponse()));
+
+        mockMvc.perform(get("/api/v1/sales")
+                        .header("auth-token", "test-token")
+                        .param("start_date", "2026-09-01")
+                        .param("end_date", "2026-09-14")
+                        .param("shoe_code", "OXF-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].shoe_code").value("OXF-001"));
+    }
+
+    @Test
+    void findByDateWithoutShoeCodeReturnsEmptyList() throws Exception
+    {
+        when(saleQueryService.findByDate(LocalDate.of(2026, 9, 14), null)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/sales/by-date")
+                        .header("auth-token", "test-token")
+                        .param("date", "2026-09-14"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
     void findByDateReturnsList() throws Exception
     {
-        when(saleQueryService.findByDate(LocalDate.of(2026, 9, 14)))
+        when(saleQueryService.findByDate(LocalDate.of(2026, 9, 14), null))
                 .thenReturn(List.of(saleResponse()));
 
         mockMvc.perform(get("/api/v1/sales/by-date")
@@ -115,5 +145,18 @@ class SaleControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].stock").value(2))
                 .andExpect(jsonPath("$.data[0].size").value(40));
+    }
+
+    @Test
+    void findByDateFiltersByShoeCodeAndReturnsEmpty() throws Exception
+    {
+        when(saleQueryService.findByDate(LocalDate.of(2026, 9, 14), "OXF-009")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/sales/by-date")
+                        .header("auth-token", "test-token")
+                        .param("date", "2026-09-14")
+                        .param("shoe_code", "OXF-009"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 }

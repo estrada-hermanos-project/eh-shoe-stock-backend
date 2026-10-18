@@ -70,7 +70,7 @@ public class SaleRegisterService
                     .build());
 
             log.info("Sale registered");
-            return saleMapper.toResponse(saved, request.getName(), request.getColor());
+            return saleMapper.toResponse(saved, variant.getShoeId(), request.getName(), request.getColor());
         }
         catch (BusinessException exception)
         {

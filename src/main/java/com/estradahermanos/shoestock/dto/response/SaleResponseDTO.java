@@ -18,6 +18,9 @@ public class SaleResponseDTO
 {
     private Integer size;
 
+    @JsonProperty("shoe_code")
+    private String shoeCode;
+
     private String name;
 
     private String color;

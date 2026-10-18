@@ -94,7 +94,8 @@ class MapperCoverageTest
         assertNull(supplierMapper.toEntity(CreateSupplierRequestDTO.builder().fullName("Ana").phone("111").build()).getId());
         supplierMapper.updateEntity(UpdateSupplierRequestDTO.builder().fullName("Ana Ruiz").phone("222").build(), supplier);
         assertEquals("Ana Ruiz", supplier.getFullName());
-        assertEquals(3, saleMapper.toResponse(sale, "Oxford", "Negro").getStock());
+        assertEquals("OXF-001", saleMapper.toResponse(sale, "OXF-001", "Oxford", "Negro").getShoeCode());
+        assertEquals(3, saleMapper.toResponse(sale, "OXF-001", "Oxford", "Negro").getStock());
         assertEquals(15, stockMapper.toResponse(variant).getId());
         assertEquals("Oxford", stockMapper.toStockQuery(variant, "Oxford").getName());
     }
