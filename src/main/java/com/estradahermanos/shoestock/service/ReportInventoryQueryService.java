@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -178,20 +179,7 @@ public class ReportInventoryQueryService
             Set<Integer> pending = pendingStockIds();
             Map<Integer, String> names = catalogLookup.supplierNames();
             return shoeStockRepository.findByStock(0).stream()
-                    .map(variant ->
-                    {
-                        Shoe shoe = shoes().get(variant.getShoeId());
-                        return OutOfStockDTO.builder()
-                                .shoeStockId(variant.getId())
-                                .shoeName(shoe == null ? null : shoe.getName())
-                                .color(variant.getColor())
-                                .size(variant.getSize())
-                                .type(shoe == null ? null : shoe.getType())
-                                .supplierName(shoe == null ? null : names.get(shoe.getSupplier()))
-                                .amountSold(sold.getOrDefault(variant.getId(), 0L))
-                                .hasPendingOrder(pending.contains(variant.getId()))
-                                .build();
-                    })
+                    .map(variant -> toOutOfStock(variant, sold, pending, names))
                     .toList();
         }
         catch (BusinessException exception)
@@ -203,6 +191,20 @@ public class ReportInventoryQueryService
             ExceptionLog.unexpected("Failed to generate out of stock report", exception);
             throw reportFailed();
         }
+    }
+
+    private OutOfStockDTO toOutOfStock(ShoeStock variant, Map<Integer, Long> sold,
+                                       Set<Integer> pending, Map<Integer, String> names)
+    {
+        Long    amountSold      = sold.getOrDefault(variant.getId(), 0L);
+        Boolean hasPendingOrder = pending.contains(variant.getId());
+        Shoe    shoe            = shoes().get(variant.getShoeId());
+        if (Objects.isNull(shoe))
+        {
+            return reportInventoryMapper.toOutOfStock(variant, null, null, null, amountSold, hasPendingOrder);
+        }
+        return reportInventoryMapper.toOutOfStock(
+                variant, shoe.getName(), shoe.getType(), names.get(shoe.getSupplier()), amountSold, hasPendingOrder);
     }
 
     /** Restock advice from sales and current stock. */
