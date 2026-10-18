@@ -13,13 +13,14 @@ import java.time.LocalDate;
 public interface ReportSalesMapper
 {
     @Mapping(target = "shoeStockId", source = "variant.id")
+    @Mapping(target = "shoeCode", source = "shoeCode")
     @Mapping(target = "shoeName", source = "shoeName")
     @Mapping(target = "color", source = "variant.color")
     @Mapping(target = "size", source = "variant.size")
     @Mapping(target = "amountSold", source = "amountSold")
     @Mapping(target = "currentStock", source = "currentStock")
     @Mapping(target = "lastSaleDate", source = "lastSaleDate")
-    ProductSalesRankDTO toRank(ShoeStock variant, String shoeName, Long amountSold,
+    ProductSalesRankDTO toRank(ShoeStock variant, String shoeCode, String shoeName, Long amountSold,
                                Integer currentStock, LocalDate lastSaleDate);
 
     @Mapping(target = "shoeStockId", source = "sale.shoeStockId")

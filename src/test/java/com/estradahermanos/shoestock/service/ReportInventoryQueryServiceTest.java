@@ -203,6 +203,7 @@ class ReportInventoryQueryServiceTest
                 Order.builder().id("ORDEN-1").status(OrderStatusEnum.PENDIENTE).build()));
         when(orderDetailRepository.findByOrderIdIn(any())).thenReturn(List.of(
                 OrderDetail.builder().orderId("ORDEN-1").shoeStockId(1).amount(2).build()));
+        stubOutOfStockMapper();
 
         List<OutOfStockDTO> result = service.outOfStock(InventoryReportFilterDTO.builder()
                 .startDate(LocalDate.of(2026, 9, 1))
@@ -210,8 +211,10 @@ class ReportInventoryQueryServiceTest
                 .build());
 
         assertEquals(6L, result.get(0).getAmountSold());
+        assertEquals(0, result.get(0).getStock());
         assertTrue(result.get(0).getHasPendingOrder());
         assertFalse(result.get(1).getHasPendingOrder());
+        assertEquals(0, result.get(1).getStock());
         assertNull(result.get(1).getShoeName());
     }
 
@@ -223,8 +226,12 @@ class ReportInventoryQueryServiceTest
         when(catalogLookup.supplierNames()).thenReturn(Map.of());
         when(saleRepository.sumAmountGroupedByStock(null, null)).thenReturn(List.of());
         when(orderRepository.findByStatus(OrderStatusEnum.PENDIENTE)).thenReturn(List.of());
+        stubOutOfStockMapper();
 
-        assertFalse(service.outOfStock(InventoryReportFilterDTO.builder().build()).get(0).getHasPendingOrder());
+        OutOfStockDTO result = service.outOfStock(InventoryReportFilterDTO.builder().build()).get(0);
+
+        assertFalse(result.getHasPendingOrder());
+        assertEquals(0, result.getStock());
     }
 
     @Test
@@ -311,6 +318,19 @@ class ReportInventoryQueryServiceTest
                 .stock(stock)
                 .minStock(minStock)
                 .build();
+    }
+
+    private void stubOutOfStockMapper()
+    {
+        when(reportInventoryMapper.toOutOfStock(any(), nullable(String.class), nullable(String.class),
+                nullable(String.class), any(), any()))
+                .thenAnswer(invocation -> OutOfStockDTO.builder()
+                        .shoeStockId(invocation.getArgument(0, ShoeStock.class).getId())
+                        .shoeName(invocation.getArgument(1))
+                        .stock(invocation.getArgument(0, ShoeStock.class).getStock())
+                        .amountSold(invocation.getArgument(4))
+                        .hasPendingOrder(invocation.getArgument(5))
+                        .build());
     }
 
     private Shoe shoe(String code, String name, String type, int supplier)

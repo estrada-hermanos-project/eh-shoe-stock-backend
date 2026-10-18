@@ -24,6 +24,8 @@ public class OutOfStockDTO
 
     private Integer size;
 
+    private Integer stock;
+
     private String type;
 
     @JsonProperty("supplier_name")

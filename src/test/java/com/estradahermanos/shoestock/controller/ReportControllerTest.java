@@ -59,6 +59,7 @@ class ReportControllerTest
         when(reportSalesQueryService.topProducts(any(SalesReportFilterDTO.class)))
                 .thenReturn(List.of(ProductSalesRankDTO.builder()
                         .shoeStockId(15)
+                        .shoeCode("OXF-001")
                         .shoeName("Oxford clasico")
                         .amountSold(18L)
                         .build()));
@@ -69,6 +70,7 @@ class ReportControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("OK"))
                 .andExpect(jsonPath("$.data[0].shoe_stock_id").value(15))
+                .andExpect(jsonPath("$.data[0].shoe_code").value("OXF-001"))
                 .andExpect(jsonPath("$.data[0].amount_sold").value(18));
     }
 
