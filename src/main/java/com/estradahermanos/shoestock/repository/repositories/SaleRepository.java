@@ -34,6 +34,16 @@ public class SaleRepository
         return saleCrud.findBySaleDate(saleDate);
     }
 
+    public List<Sale> findBySaleDateBetweenAndShoeCode(LocalDate startDate, LocalDate endDate, String shoeCode)
+    {
+        return saleCrud.findBySaleDateBetweenAndShoeCode(startDate, endDate, shoeCode);
+    }
+
+    public List<Sale> findBySaleDateAndShoeCode(LocalDate saleDate, String shoeCode)
+    {
+        return saleCrud.findBySaleDateAndShoeCode(saleDate, shoeCode);
+    }
+
     public List<SaleAmountByStockView> sumAmountGroupedByStock(LocalDate startDate, LocalDate endDate)
     {
         return saleCrud.sumAmountGroupedByStock(startDate, endDate);

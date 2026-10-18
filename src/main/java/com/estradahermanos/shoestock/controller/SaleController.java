@@ -38,22 +38,26 @@ public class SaleController
     }
 
     @GetMapping
-    @Operation(summary = "Sales history between two dates")
+    @Operation(summary = "Sales history between two dates, optionally filtered by style code")
     public ResponseEntity<ResponseSuccessDTO> findByRange(
             @Parameter(description = "Start date (YYYY-MM-DD)")
             @RequestParam("start_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)")
-            @RequestParam("end_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate)
+            @RequestParam("end_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "Style code (shoe.code). Omit to include every style")
+            @RequestParam(value = "shoe_code", required = false) String shoeCode)
     {
-        return ResponseBuilder.success(HttpStatus.OK, saleQueryService.findByDateRange(startDate, endDate));
+        return ResponseBuilder.success(HttpStatus.OK, saleQueryService.findByDateRange(startDate, endDate, shoeCode));
     }
 
     @GetMapping("/by-date")
-    @Operation(summary = "Sales history for a specific date")
+    @Operation(summary = "Sales history for a specific date, optionally filtered by style code")
     public ResponseEntity<ResponseSuccessDTO> findByDate(
             @Parameter(description = "Date (YYYY-MM-DD)")
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date)
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Parameter(description = "Style code (shoe.code). Omit to include every style")
+            @RequestParam(value = "shoe_code", required = false) String shoeCode)
     {
-        return ResponseBuilder.success(HttpStatus.OK, saleQueryService.findByDate(date));
+        return ResponseBuilder.success(HttpStatus.OK, saleQueryService.findByDate(date, shoeCode));
     }
 }

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,11 +69,12 @@ class SaleQueryServiceTest
                 ShoeStock.builder().id(7).shoeId("OXF-001").color("Negro").size(40).stock(8).minStock(0).build()));
         when(shoeRepository.findAllById(anyCollection())).thenReturn(List.of(
                 Shoe.builder().code("OXF-001").type("Caballero").name("Oxford clasico").supplier(2).build()));
-        when(saleMapper.toResponse(any(), any(), any())).thenReturn(
+        when(saleMapper.toResponse(any(), any(), any(), any())).thenAnswer(invocation ->
                 SaleResponseDTO.builder()
+                        .shoeCode(invocation.getArgument(1))
                         .size(40)
-                        .name("Oxford clasico")
-                        .color("Negro")
+                        .name(invocation.getArgument(2))
+                        .color(invocation.getArgument(3))
                         .stock(2)
                         .saleDate(LocalDate.of(2026, 9, 14))
                         .build());
@@ -86,9 +88,10 @@ class SaleQueryServiceTest
         when(saleRepository.findBySaleDateBetween(start, end)).thenReturn(List.of(sale()));
         stubResolution();
 
-        List<SaleResponseDTO> result = service.findByDateRange(start, end);
+        List<SaleResponseDTO> result = service.findByDateRange(start, end, null);
 
         assertEquals(1, result.size());
+        assertEquals("OXF-001", result.get(0).getShoeCode());
         assertEquals("Oxford clasico", result.get(0).getName());
         assertEquals("Negro", result.get(0).getColor());
     }
@@ -97,11 +100,12 @@ class SaleQueryServiceTest
     void findByDateRangeRejectsInvertedDates()
     {
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> service.findByDateRange(LocalDate.of(2026, 9, 14), LocalDate.of(2026, 9, 1)));
+                () -> service.findByDateRange(LocalDate.of(2026, 9, 14), LocalDate.of(2026, 9, 1), "OXF-001"));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getCode());
         assertEquals("start_date must not be after end_date", exception.getMessage());
         verify(saleRepository, never()).findBySaleDateBetween(any(), any());
+        verify(saleRepository, never()).findBySaleDateBetweenAndShoeCode(any(), any(), any());
     }
 
     @Test
@@ -111,7 +115,7 @@ class SaleQueryServiceTest
         LocalDate end   = LocalDate.of(2026, 9, 14);
         when(saleRepository.findBySaleDateBetween(start, end)).thenReturn(List.of());
 
-        List<SaleResponseDTO> result = service.findByDateRange(start, end);
+        List<SaleResponseDTO> result = service.findByDateRange(start, end, "  ");
 
         assertTrue(result.isEmpty());
         verify(shoeStockRepository, never()).findAllById(anyCollection());
@@ -124,9 +128,51 @@ class SaleQueryServiceTest
         when(saleRepository.findBySaleDate(date)).thenReturn(List.of(sale()));
         stubResolution();
 
-        List<SaleResponseDTO> result = service.findByDate(date);
+        List<SaleResponseDTO> result = service.findByDate(date, null);
 
         assertEquals(1, result.size());
+        assertEquals("OXF-001", result.get(0).getShoeCode());
         assertEquals(2, result.get(0).getStock());
+    }
+
+    @Test
+    void findByDateRangeFiltersEveryVariantOfTheStyle()
+    {
+        LocalDate start = LocalDate.of(2026, 9, 1);
+        LocalDate end   = LocalDate.of(2026, 9, 14);
+        when(saleRepository.findBySaleDateBetweenAndShoeCode(start, end, "OXF-001")).thenReturn(List.of(sale()));
+        stubResolution();
+
+        List<SaleResponseDTO> result = service.findByDateRange(start, end, " OXF-001 ");
+
+        assertEquals("OXF-001", result.get(0).getShoeCode());
+        verify(saleRepository, never()).findBySaleDateBetween(any(), any());
+    }
+
+    @Test
+    void findByDateReturnsEmptyWhenStyleHasNoSales()
+    {
+        LocalDate date = LocalDate.of(2026, 9, 14);
+        when(saleRepository.findBySaleDateAndShoeCode(date, "OXF-001")).thenReturn(List.of());
+
+        List<SaleResponseDTO> result = service.findByDate(date, "OXF-001");
+
+        assertTrue(result.isEmpty());
+        verify(shoeStockRepository, never()).findAllById(anyCollection());
+    }
+
+    @Test
+    void findByDateOmitsCodeWhenVariantIsMissing()
+    {
+        LocalDate date = LocalDate.of(2026, 9, 14);
+        when(saleRepository.findBySaleDate(date)).thenReturn(List.of(sale()));
+        when(shoeStockRepository.findAllById(anyCollection())).thenReturn(List.of());
+        when(shoeRepository.findAllById(anyCollection())).thenReturn(List.of());
+        when(saleMapper.toResponse(any(), isNull(), isNull(), isNull()))
+                .thenReturn(SaleResponseDTO.builder().build());
+
+        service.findByDate(date, null);
+
+        verify(saleMapper).toResponse(any(), isNull(), isNull(), isNull());
     }
 }

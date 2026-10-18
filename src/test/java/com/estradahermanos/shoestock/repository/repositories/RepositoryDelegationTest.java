@@ -98,6 +98,8 @@ class RepositoryDelegationTest
         when(crud.save(sale)).thenReturn(sale);
         when(crud.findBySaleDateBetween(start, end)).thenReturn(List.of(sale));
         when(crud.findBySaleDate(start)).thenReturn(List.of(sale));
+        when(crud.findBySaleDateBetweenAndShoeCode(start, end, "OXF-001")).thenReturn(List.of(sale));
+        when(crud.findBySaleDateAndShoeCode(start, "OXF-001")).thenReturn(List.of(sale));
         when(crud.sumAmountGroupedByStock(start, end)).thenReturn(List.of());
         when(crud.findLastSaleDateGrouped()).thenReturn(List.of());
         when(crud.sumAmountGroupedByType(start, end)).thenReturn(List.of());
@@ -107,6 +109,8 @@ class RepositoryDelegationTest
         assertSame(sale, repository.save(sale));
         assertEquals(1, repository.findBySaleDateBetween(start, end).size());
         assertEquals(1, repository.findBySaleDate(start).size());
+        assertEquals(1, repository.findBySaleDateBetweenAndShoeCode(start, end, "OXF-001").size());
+        assertEquals(1, repository.findBySaleDateAndShoeCode(start, "OXF-001").size());
         assertTrue(repository.sumAmountGroupedByStock(start, end).isEmpty());
         assertTrue(repository.findLastSaleDateGrouped().isEmpty());
         assertTrue(repository.sumAmountGroupedByType(start, end).isEmpty());

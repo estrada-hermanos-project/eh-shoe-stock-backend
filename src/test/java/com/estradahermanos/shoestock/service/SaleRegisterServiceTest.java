@@ -92,8 +92,9 @@ class SaleRegisterServiceTest
     {
         when(inventoryVariantLookup.findVariant("Oxford clasico", "Negro", 40)).thenReturn(variant());
         when(saleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(saleMapper.toResponse(any(), eq("Oxford clasico"), eq("Negro")))
+        when(saleMapper.toResponse(any(), eq("OXF-001"), eq("Oxford clasico"), eq("Negro")))
                 .thenReturn(SaleResponseDTO.builder()
+                        .shoeCode("OXF-001")
                         .size(40)
                         .name("Oxford clasico")
                         .color("Negro")
@@ -126,7 +127,7 @@ class SaleRegisterServiceTest
         SaleRegisterService eveningService = serviceAt(LocalTime.of(18, 30));
         when(inventoryVariantLookup.findVariant("Oxford clasico", "Negro", 40)).thenReturn(variant());
         when(saleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(saleMapper.toResponse(any(), eq("Oxford clasico"), eq("Negro")))
+        when(saleMapper.toResponse(any(), eq("OXF-001"), eq("Oxford clasico"), eq("Negro")))
                 .thenReturn(SaleResponseDTO.builder().saleDate(BUSINESS_DAY).build());
 
         eveningService.register(request());
