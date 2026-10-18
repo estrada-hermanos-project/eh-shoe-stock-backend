@@ -74,13 +74,18 @@ class ReportSalesQueryServiceTest
         when(catalogLookup.shoesByCode(anyCollection())).thenReturn(Map.of(
                 "OXF-001", Shoe.builder().code("OXF-001").name("Oxford").supplier(1).type("Caballero").build()));
         when(saleRepository.findLastSaleDateGrouped()).thenReturn(List.of());
-        when(reportSalesMapper.toRank(eq(first), any(), eq(10L), eq(4), any()))
-                .thenReturn(ProductSalesRankDTO.builder().shoeStockId(1).amountSold(10L).build());
+        when(reportSalesMapper.toRank(eq(first), eq("OXF-001"), eq("Oxford"), eq(10L), eq(4), any()))
+                .thenReturn(ProductSalesRankDTO.builder()
+                        .shoeStockId(1)
+                        .shoeCode("OXF-001")
+                        .amountSold(10L)
+                        .build());
 
         List<ProductSalesRankDTO> result = service.topProducts(SalesReportFilterDTO.builder().limit(1).build());
 
         assertEquals(1, result.size());
         assertEquals(1, result.get(0).getShoeStockId());
+        assertEquals("OXF-001", result.get(0).getShoeCode());
         assertEquals(10L, result.get(0).getAmountSold());
     }
 
@@ -139,9 +144,10 @@ class ReportSalesQueryServiceTest
         when(catalogLookup.shoesByCode(anyCollection())).thenReturn(Map.of(
                 "OXF-001", Shoe.builder().code("OXF-001").name("Oxford").supplier(1).type("Caballero").build()));
         when(saleRepository.findLastSaleDateGrouped()).thenReturn(List.of(lastSale(4, LocalDate.of(2026, 9, 1))));
-        when(reportSalesMapper.toRank(any(ShoeStock.class), nullable(String.class), any(), any(), nullable(LocalDate.class)))
+        when(reportSalesMapper.toRank(any(ShoeStock.class), nullable(String.class), nullable(String.class), any(), any(), nullable(LocalDate.class)))
                 .thenAnswer(invocation -> ProductSalesRankDTO.builder()
                         .shoeStockId(invocation.getArgument(0, ShoeStock.class).getId())
+                        .shoeCode(invocation.getArgument(1))
                         .build());
 
         List<ProductSalesRankDTO> inStock = service.bottomProducts(SalesReportFilterDTO.builder()
@@ -155,6 +161,12 @@ class ReportSalesQueryServiceTest
         assertEquals(2, all.get(0).getShoeStockId());
         assertEquals(0, all.get(0).getCurrentStock());
         assertEquals(4, all.get(1).getShoeStockId());
+        assertEquals("OXF-001", all.get(1).getShoeCode());
+        assertEquals("NONE", all.stream()
+                .filter(row -> row.getShoeStockId() == 3)
+                .findFirst()
+                .orElseThrow()
+                .getShoeCode());
     }
 
     @Test

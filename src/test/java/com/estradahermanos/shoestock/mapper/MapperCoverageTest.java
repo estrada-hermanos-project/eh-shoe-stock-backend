@@ -33,7 +33,8 @@ class MapperCoverageTest
         ShoeStock variant = ShoeStock.builder().id(15).shoeId("OXF-001").color("Negro").size(42).stock(4).build();
         Sale sale = Sale.builder().id(1).shoeStockId(15).amount(3).size(42).saleDate(LocalDate.of(2026, 9, 2)).build();
 
-        assertEquals(15, mapper.toRank(variant, "Oxford", 8L, 4, LocalDate.of(2026, 9, 2)).getShoeStockId());
+        assertEquals("OXF-001", mapper.toRank(variant, "OXF-001", "Oxford", 8L, 4, LocalDate.of(2026, 9, 2)).getShoeCode());
+        assertEquals(15, mapper.toRank(variant, "OXF-001", "Oxford", 8L, 4, LocalDate.of(2026, 9, 2)).getShoeStockId());
         assertEquals("Oxford", mapper.toPeriodSale(sale, "Oxford", "Negro").getShoeName());
     }
 
@@ -45,6 +46,7 @@ class MapperCoverageTest
 
         assertEquals("Oxford", mapper.toStatus(variant, "Oxford").getShoeName());
         assertEquals(3, mapper.toLowStock(variant, "Oxford", 3, "Maria Lopez").getPairsBelowMin());
+        assertEquals(1, mapper.toOutOfStock(variant, "Oxford", "Caballero", "Maria Lopez", 6L, false).getStock());
     }
 
     @Test

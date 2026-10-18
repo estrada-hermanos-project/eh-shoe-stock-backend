@@ -37,6 +37,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -281,31 +282,42 @@ public class ReportSalesQueryService
         List<ProductSalesRankDTO> result = new ArrayList<>();
         for (SaleAmountByStockView row : rows)
         {
-            ShoeStock variant = variants.get(row.getShoeStockId());
-            Integer   stock   = variant == null ? 0 : variant.getStock();
-            if (withStockOnly && stock <= 0)
+            ProductSalesRankDTO ranked = rankRow(row, variants, shoes, lastSales, withStockOnly);
+            if (!Objects.isNull(ranked))
             {
-                continue;
-            }
-            String shoeName = null;
-            if (variant != null)
-            {
-                Shoe shoe = shoes.get(variant.getShoeId());
-                shoeName  = shoe == null ? null : shoe.getName();
-                result.add(reportSalesMapper.toRank(
-                        variant, shoeName, row.getTotalAmount(), stock, lastSales.get(row.getShoeStockId())));
-            }
-            else
-            {
-                result.add(ProductSalesRankDTO.builder()
-                        .shoeStockId(row.getShoeStockId())
-                        .amountSold(row.getTotalAmount())
-                        .currentStock(0)
-                        .lastSaleDate(lastSales.get(row.getShoeStockId()))
-                        .build());
+                result.add(ranked);
             }
         }
         return result;
+    }
+
+    private ProductSalesRankDTO rankRow(SaleAmountByStockView row, Map<Integer, ShoeStock> variants,
+                                        Map<String, Shoe> shoes, Map<Integer, LocalDate> lastSales,
+                                        boolean withStockOnly)
+    {
+        ShoeStock variant = variants.get(row.getShoeStockId());
+        Integer   stock   = Objects.isNull(variant) ? 0 : variant.getStock();
+        if (withStockOnly && stock <= 0)
+        {
+            return null;
+        }
+        if (Objects.isNull(variant))
+        {
+            return ProductSalesRankDTO.builder()
+                    .shoeStockId(row.getShoeStockId())
+                    .amountSold(row.getTotalAmount())
+                    .currentStock(0)
+                    .lastSaleDate(lastSales.get(row.getShoeStockId()))
+                    .build();
+        }
+        Shoe shoe = shoes.get(variant.getShoeId());
+        return reportSalesMapper.toRank(
+                variant,
+                variant.getShoeId(),
+                Objects.isNull(shoe) ? null : shoe.getName(),
+                row.getTotalAmount(),
+                stock,
+                lastSales.get(row.getShoeStockId()));
     }
 
     private Map<Integer, Integer> stockBySize(String type, String shoeCode)
