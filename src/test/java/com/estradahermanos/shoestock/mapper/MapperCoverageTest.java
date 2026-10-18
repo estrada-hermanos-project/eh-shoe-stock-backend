@@ -62,12 +62,17 @@ class MapperCoverageTest
                 .status(OrderStatusEnum.PENDIENTE)
                 .build();
         OrderDetail detail = OrderDetail.builder().id(1).orderId("ORDEN-1").shoeStockId(15).amount(4).build();
-        OrderDetailResponseDTO detailDto = detailMapper.toResponse(detail, "Oxford");
+        OrderDetailResponseDTO detailDto = detailMapper.toResponse(detail, "OXF-001", "Oxford");
 
+        assertEquals("OXF-001", detailDto.getShoeCode());
         assertEquals("Oxford", detailDto.getShoeName());
         assertEquals(4, merchandiseMapper.toPending(order, "Maria Lopez", 3L, 4, List.of(detailDto)).getTotalPairs());
         assertEquals("ORDEN-1", merchandiseMapper.toReceived(order, "Maria Lopez", 4, List.of(detailDto)).getOrderId());
         assertEquals(OrderStatusEnum.PENDIENTE, orderMapper.toResponse(order, "Maria Lopez", List.of(detailDto)).getStatus());
+        assertEquals(2, orderMapper.toResponse(order, "Maria Lopez", List.of(detailDto)).getSupplierId());
+        assertNull(orderMapper.toResponse(order, "Maria Lopez", List.of(detailDto)).getReceivedDate());
+        order.setReceivedDate(LocalDate.of(2026, 9, 29));
+        assertEquals(LocalDate.of(2026, 9, 29), orderMapper.toResponse(order, "Maria Lopez", List.of(detailDto)).getReceivedDate());
     }
 
     @Test
@@ -100,6 +105,7 @@ class MapperCoverageTest
         assertEquals(3, saleMapper.toResponse(sale, "OXF-001", "Oxford", "Negro").getStock());
         assertEquals(15, stockMapper.toResponse(variant).getId());
         assertEquals("Oxford", stockMapper.toStockQuery(variant, "Oxford").getName());
+        assertEquals("OXF-001", stockMapper.toSupplierVariant(variant, "Oxford").getShoeCode());
     }
 
     @Test

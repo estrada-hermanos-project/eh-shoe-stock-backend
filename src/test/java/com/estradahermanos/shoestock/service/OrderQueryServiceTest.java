@@ -29,10 +29,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,16 +99,23 @@ class OrderQueryServiceTest
                 Shoe.builder().code("OXF-001").type("Caballero").name("Oxford clasico").supplier(2).build()));
         when(supplierRepository.findAll()).thenReturn(List.of(
                 Supplier.builder().id(2).fullName("Maria Lopez").phone("55512345").build()));
-        when(orderDetailMapper.toResponse(any(), any())).thenReturn(
-                OrderDetailResponseDTO.builder().shoeStockId(15).shoeName("Oxford clasico").amount(4).build());
+        when(orderDetailMapper.toResponse(any(), eq("OXF-001"), eq("Oxford clasico"))).thenReturn(
+                OrderDetailResponseDTO.builder()
+                        .shoeStockId(15)
+                        .shoeCode("OXF-001")
+                        .shoeName("Oxford clasico")
+                        .amount(4)
+                        .build());
         when(orderMapper.toResponse(any(), any(), any())).thenReturn(
                 OrderResponseDTO.builder()
                         .orderId("ORDEN-101")
                         .supplierName("Maria Lopez")
                         .status(OrderStatusEnum.PENDIENTE)
                         .creationDate(LocalDate.of(2026, 9, 16))
+                        .supplierId(2)
                         .details(List.of(OrderDetailResponseDTO.builder()
                                 .shoeStockId(15)
+                                .shoeCode("OXF-001")
                                 .shoeName("Oxford clasico")
                                 .amount(4)
                                 .build()))
@@ -124,7 +133,10 @@ class OrderQueryServiceTest
         assertEquals("ORDEN-101", result.getOrderId());
         assertEquals("Maria Lopez", result.getSupplierName());
         assertEquals(1, result.getDetails().size());
+        assertEquals("OXF-001", result.getDetails().get(0).getShoeCode());
         assertEquals("Oxford clasico", result.getDetails().get(0).getShoeName());
+        assertNull(result.getReceivedDate());
+        verify(orderDetailMapper).toResponse(any(), eq("OXF-001"), eq("Oxford clasico"));
     }
 
     @Test

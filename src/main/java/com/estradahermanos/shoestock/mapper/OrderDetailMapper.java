@@ -9,7 +9,8 @@ import org.mapstruct.Mapping;
 public interface OrderDetailMapper
 {
     @Mapping(target = "shoeStockId", source = "detail.shoeStockId")
+    @Mapping(target = "shoeCode", source = "shoeCode")
     @Mapping(target = "shoeName", source = "shoeName")
     @Mapping(target = "amount", source = "detail.amount")
-    OrderDetailResponseDTO toResponse(OrderDetail detail, String shoeName);
+    OrderDetailResponseDTO toResponse(OrderDetail detail, String shoeCode, String shoeName);
 }

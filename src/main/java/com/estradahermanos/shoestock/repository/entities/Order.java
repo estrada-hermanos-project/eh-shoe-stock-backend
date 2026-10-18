@@ -31,6 +31,9 @@ public class Order
     @Column(name = "order_delivery_date", nullable = false)
     private LocalDate orderDeliveryDate;
 
+    @Column(name = "received_date")
+    private LocalDate receivedDate;
+
     @Column(name = "supplier", nullable = false)
     private Integer supplier;
 

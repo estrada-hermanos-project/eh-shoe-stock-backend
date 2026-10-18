@@ -6,6 +6,7 @@ import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.OrderDetail;
 import com.estradahermanos.shoestock.repository.repositories.OrderDetailRepository;
 import com.estradahermanos.shoestock.repository.repositories.OrderRepository;
+import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.ExceptionLog;
 import com.estradahermanos.shoestock.utilities.OrderStatusEnum;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class OrderReceiveService
     private final OrderDetailRepository    orderDetailRepository;
     private final InventoryIncreaseService inventoryIncreaseService;
     private final OrderQueryService        orderQueryService;
+    private final BusinessDate             businessDate;
 
     /** Marca la orden como RECIBIDA e incrementa el stock de cada linea. */
     @Transactional
@@ -62,6 +64,7 @@ public class OrderReceiveService
             }
 
             order.setStatus(OrderStatusEnum.RECIBIDA);
+            order.setReceivedDate(businessDate.today());
             orderRepository.save(order);
             log.info("Order received");
             return orderQueryService.findById(orderId);
