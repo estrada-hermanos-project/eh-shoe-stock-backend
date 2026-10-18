@@ -3,6 +3,7 @@ package com.estradahermanos.shoestock.controller;
 import com.estradahermanos.shoestock.config.AuthTokenInterceptor;
 import com.estradahermanos.shoestock.config.SecurityConfig;
 import com.estradahermanos.shoestock.config.WebMvcConfig;
+import com.estradahermanos.shoestock.dto.request.CreateVariantRequestDTO;
 import com.estradahermanos.shoestock.dto.request.RegisterStockRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ShoeStockResponseDTO;
 import com.estradahermanos.shoestock.dto.response.StockQueryResponseDTO;
@@ -11,6 +12,7 @@ import com.estradahermanos.shoestock.dto.response.SupplierVariantResponseDTO;
 import com.estradahermanos.shoestock.service.InventoryDecreaseService;
 import com.estradahermanos.shoestock.service.InventoryRegisterService;
 import com.estradahermanos.shoestock.service.InventoryStyleQueryService;
+import com.estradahermanos.shoestock.service.InventoryVariantCreateService;
 import com.estradahermanos.shoestock.service.InventorySupplierQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,9 @@ class InventoryControllerTest
 
     @MockitoBean
     private InventoryRegisterService inventoryRegisterService;
+
+    @MockitoBean
+    private InventoryVariantCreateService inventoryVariantCreateService;
 
     @MockitoBean
     private InventoryDecreaseService inventoryDecreaseService;
@@ -86,6 +91,25 @@ class InventoryControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.shoe_id").value("OXF-001"))
                 .andExpect(jsonPath("$.data.stock").value(12));
+    }
+
+    @Test
+    void createVariantReturnsZeroStock() throws Exception
+    {
+        when(inventoryVariantCreateService.create(any())).thenReturn(
+                ShoeStockResponseDTO.builder().id(8).shoeId("OXF-001").color("Cafe").size(38).stock(0).build());
+
+        CreateVariantRequestDTO body = CreateVariantRequestDTO.builder()
+                .shoeId("OXF-001").color("Cafe").size(38).build();
+
+        mockMvc.perform(post("/api/v1/inventory/variants")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.shoe_id").value("OXF-001"))
+                .andExpect(jsonPath("$.data.stock").value(0))
+                .andExpect(jsonPath("$.data.color").value("Cafe"));
     }
 
     @Test

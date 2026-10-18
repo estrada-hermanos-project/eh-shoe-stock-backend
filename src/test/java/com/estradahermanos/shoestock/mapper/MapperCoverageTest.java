@@ -3,6 +3,7 @@ package com.estradahermanos.shoestock.mapper;
 import com.estradahermanos.shoestock.dto.request.CreateShoeRequestDTO;
 import com.estradahermanos.shoestock.dto.request.CreateSupplierRequestDTO;
 import com.estradahermanos.shoestock.dto.request.CreateUserAdminRequestDTO;
+import com.estradahermanos.shoestock.dto.request.CreateVariantRequestDTO;
 import com.estradahermanos.shoestock.dto.request.UpdateSupplierRequestDTO;
 import com.estradahermanos.shoestock.dto.request.UpdateUserAdminRequestDTO;
 import com.estradahermanos.shoestock.dto.response.OrderDetailResponseDTO;
@@ -106,6 +107,11 @@ class MapperCoverageTest
         assertEquals(15, stockMapper.toResponse(variant).getId());
         assertEquals("Oxford", stockMapper.toStockQuery(variant, "Oxford").getName());
         assertEquals("OXF-001", stockMapper.toSupplierVariant(variant, "Oxford").getShoeCode());
+        ShoeStock created = stockMapper.toNewVariant(CreateVariantRequestDTO.builder()
+                .shoeId("OXF-001").color("Cafe").size(38).build());
+        assertEquals(0, created.getStock());
+        assertEquals(0, created.getMinStock());
+        assertEquals("Cafe", created.getColor());
     }
 
     @Test

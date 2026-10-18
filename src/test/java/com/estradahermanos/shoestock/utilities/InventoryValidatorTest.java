@@ -41,6 +41,17 @@ class InventoryValidatorTest
     }
 
     @Test
+    void rejectsBlankColorForVariant()
+    {
+        assertThrows(BusinessException.class, () -> validator.validateVariant(" ", 40));
+    }
+
+    @Test
+    void acceptsColorAndSizeForVariant()
+    {
+        assertDoesNotThrow(() -> validator.validateVariant("Negro", 40));
+    }
+    @Test
     void rejectsAmountBelowOne()
     {
         assertThrows(BusinessException.class, () -> validator.validateAmount(0));
