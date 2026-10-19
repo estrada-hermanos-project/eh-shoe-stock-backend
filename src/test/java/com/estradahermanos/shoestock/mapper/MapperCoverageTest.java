@@ -122,6 +122,7 @@ class MapperCoverageTest
         UserAdmin admin = UserAdmin.builder().dpi("123").fullName("Diego Estrada").phone("555").email("diego@mail.com").build();
 
         assertEquals("Diego Estrada", adminMapper.toResponse(admin).getName());
+        assertEquals("123", adminMapper.toResponse(admin).getDpi());
         assertEquals(1, adminMapper.toResponseList(List.of(admin)).size());
         assertNull(adminMapper.toEntity(CreateUserAdminRequestDTO.builder()
                 .dpi("123")

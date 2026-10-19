@@ -13,6 +13,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserAdminResponseDTO
 {
+    private String dpi;
+
     private String name;
 
     private String phone;
