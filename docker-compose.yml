@@ -51,6 +51,10 @@ services:
       AUTH_TOKEN: local-auth-token
       JWT_SECRET: local-dev-jwt-secret-change-me-32bytes-min
       JWT_EXPIRATION_MINUTES: 60
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+      MAIL_USERNAME: estradahermanoscfo@gmail.com
+      MAIL_PASSWORD: csjxsbzkhhgnlxjv
       TZ: UTC
     ports:
       - "8080:8080"
