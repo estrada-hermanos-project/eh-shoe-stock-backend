@@ -31,7 +31,7 @@ public class SaleController
     private final SaleQueryService    saleQueryService;
 
     @PostMapping
-    @Operation(summary = "Register a sale and decrease stock")
+    @Operation(summary = "Register a sale, decrease stock and email administrators when the variant is low or sold out")
     public ResponseEntity<ResponseSuccessDTO> register(@RequestBody CreateSaleRequestDTO request)
     {
         return ResponseBuilder.success(HttpStatus.CREATED, saleRegisterService.register(request));
