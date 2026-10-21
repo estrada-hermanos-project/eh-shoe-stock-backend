@@ -1,5 +1,6 @@
 package com.estradahermanos.shoestock.repository.repositories;
 
+import com.estradahermanos.shoestock.repository.cruds.PasswordRecoveryTokenCrud;
 import com.estradahermanos.shoestock.repository.cruds.OrderCrud;
 import com.estradahermanos.shoestock.repository.cruds.OrderDetailCrud;
 import com.estradahermanos.shoestock.repository.cruds.SaleCrud;
@@ -9,6 +10,7 @@ import com.estradahermanos.shoestock.repository.cruds.SupplierCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserAccountCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserAdminCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserSessionCrud;
+import com.estradahermanos.shoestock.repository.entities.PasswordRecoveryToken;
 import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.OrderDetail;
 import com.estradahermanos.shoestock.repository.entities.Sale;
@@ -217,5 +219,29 @@ class RepositoryDelegationTest
         assertEquals(account, accounts.findByUsername("diego").orElseThrow());
         assertTrue(accounts.existsByUsername("diego"));
         assertSame(session, sessions.save(session));
+    }
+
+    @Test
+    void passwordRecoveryTokenRepositoryDelegatesToTheCrud()
+    {
+        PasswordRecoveryTokenCrud crud = mock(PasswordRecoveryTokenCrud.class);
+        PasswordRecoveryTokenRepository repository = new PasswordRecoveryTokenRepository(crud);
+        PasswordRecoveryToken token = PasswordRecoveryToken.builder()
+                .id(4)
+                .token("raw-token")
+                .username("diego")
+                .creationDate(LocalDateTime.of(2026, 10, 19, 22, 0))
+                .expirationDate(LocalDateTime.of(2026, 10, 19, 22, 30))
+                .used(false)
+                .build();
+        when(crud.save(token)).thenReturn(token);
+        when(crud.saveAll(List.of(token))).thenReturn(List.of(token));
+        when(crud.findByToken("raw-token")).thenReturn(Optional.of(token));
+        when(crud.findByUsernameAndUsedFalse("diego")).thenReturn(List.of(token));
+
+        assertSame(token, repository.save(token));
+        assertEquals(1, repository.saveAll(List.of(token)).size());
+        assertEquals(token, repository.findByToken("raw-token").orElseThrow());
+        assertEquals(1, repository.findUnusedByUsername("diego").size());
     }
 }
