@@ -51,6 +51,7 @@ services:
       AUTH_TOKEN: local-auth-token
       JWT_SECRET: local-dev-jwt-secret-change-me-32bytes-min
       JWT_EXPIRATION_MINUTES: 60
+      FRONTEND_BASE_URL: http://34.229.167.238:5500
       MAIL_HOST: smtp.gmail.com
       MAIL_PORT: 587
       MAIL_USERNAME: estradahermanoscfo@gmail.com
