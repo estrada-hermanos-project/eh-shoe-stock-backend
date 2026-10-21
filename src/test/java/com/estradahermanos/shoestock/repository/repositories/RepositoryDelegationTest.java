@@ -197,6 +197,7 @@ class RepositoryDelegationTest
         when(adminCrud.save(admin)).thenReturn(admin);
         when(adminCrud.findById("123")).thenReturn(Optional.of(admin));
         when(adminCrud.findAll()).thenReturn(List.of(admin));
+        when(adminCrud.findWithEmail()).thenReturn(List.of(admin));
         when(adminCrud.existsById("123")).thenReturn(true);
         when(accountCrud.save(account)).thenReturn(account);
         when(accountCrud.findById("diego")).thenReturn(Optional.of(account));
@@ -214,6 +215,7 @@ class RepositoryDelegationTest
         assertSame(admin, admins.save(admin));
         assertEquals(admin, admins.findByDpi("123").orElseThrow());
         assertEquals(1, admins.findAll().size());
+        assertEquals(1, admins.findWithEmail().size());
         assertTrue(admins.existsByDpi("123"));
         admins.deleteByDpi("123");
         verify(adminCrud).deleteById("123");

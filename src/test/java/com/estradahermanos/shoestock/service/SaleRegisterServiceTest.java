@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,6 +49,9 @@ class SaleRegisterServiceTest
 
     @Mock
     private SaleMapper saleMapper;
+
+    @Mock
+    private SaleStockAlertService saleStockAlertService;
 
     private SaleRegisterService service;
 
@@ -68,6 +74,7 @@ class SaleRegisterServiceTest
                 new InventoryValidator(),
                 inventoryVariantLookup,
                 inventoryDecreaseService,
+                saleStockAlertService,
                 saleMapper,
                 new BusinessDate(clock));
     }
@@ -119,6 +126,11 @@ class SaleRegisterServiceTest
 
         assertEquals(2, result.getStock());
         assertEquals("Oxford clasico", result.getName());
+
+        InOrder order = inOrder(inventoryDecreaseService, saleRepository, saleStockAlertService);
+        order.verify(inventoryDecreaseService).decrease(any());
+        order.verify(saleRepository).save(any());
+        order.verify(saleStockAlertService).notifyAfterSale("OXF-001", "Negro", 40);
     }
 
     @Test
@@ -135,6 +147,7 @@ class SaleRegisterServiceTest
         ArgumentCaptor<Sale> saleCaptor = ArgumentCaptor.forClass(Sale.class);
         verify(saleRepository).save(saleCaptor.capture());
         assertEquals(BUSINESS_DAY, saleCaptor.getValue().getSaleDate());
+        verify(saleStockAlertService).notifyAfterSale("OXF-001", "Negro", 40);
     }
 
     @Test
@@ -144,6 +157,7 @@ class SaleRegisterServiceTest
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getCode());
         verify(saleRepository, never()).save(any());
+        verify(saleStockAlertService, never()).notifyAfterSale(any(), any(), any());
     }
 
     @Test
@@ -156,6 +170,7 @@ class SaleRegisterServiceTest
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getCode());
         verify(inventoryVariantLookup, never()).findVariant(any(), any(), any());
+        verify(saleStockAlertService, never()).notifyAfterSale(any(), any(), any());
     }
 
     @Test
@@ -168,6 +183,7 @@ class SaleRegisterServiceTest
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getCode());
         verify(inventoryVariantLookup, never()).findVariant(any(), any(), any());
+        verify(saleStockAlertService, never()).notifyAfterSale(any(), any(), any());
     }
 
     @Test
@@ -184,6 +200,7 @@ class SaleRegisterServiceTest
         assertEquals(HttpStatus.BAD_REQUEST, exception.getCode());
         verify(inventoryDecreaseService, never()).decrease(any());
         verify(saleRepository, never()).save(any());
+        verify(saleStockAlertService, never()).notifyAfterSale(any(), any(), any());
     }
 
     @Test
@@ -200,5 +217,26 @@ class SaleRegisterServiceTest
 
         assertEquals(HttpStatus.CONFLICT, exception.getCode());
         verify(saleRepository, never()).save(any());
+        verify(saleStockAlertService, never()).notifyAfterSale(any(), any(), any());
+    }
+
+    @Test
+    void registerKeepsSaleWhenStockAlertFails()
+    {
+        when(inventoryVariantLookup.findVariant("Oxford clasico", "Negro", 40)).thenReturn(variant());
+        when(saleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(saleMapper.toResponse(any(), eq("OXF-001"), eq("Oxford clasico"), eq("Negro")))
+                .thenReturn(SaleResponseDTO.builder().stock(2).name("Oxford clasico").build());
+        doThrow(BusinessException.builder()
+                .code(HttpStatus.BAD_GATEWAY)
+                .message("Could not send email")
+                .build())
+                .when(saleStockAlertService).notifyAfterSale("OXF-001", "Negro", 40);
+
+        SaleResponseDTO result = service.register(request());
+
+        assertEquals(2, result.getStock());
+        verify(inventoryDecreaseService).decrease(any());
+        verify(saleRepository).save(any());
     }
 }
