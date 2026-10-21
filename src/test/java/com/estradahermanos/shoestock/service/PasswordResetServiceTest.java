@@ -2,20 +2,27 @@ package com.estradahermanos.shoestock.service;
 
 import com.estradahermanos.shoestock.dto.request.LoginRequestDTO;
 import com.estradahermanos.shoestock.dto.request.PasswordResetRequestDTO;
+import com.estradahermanos.shoestock.dto.response.LoginChallengeResponseDTO;
 import com.estradahermanos.shoestock.dto.response.MessageResponseDTO;
 import com.estradahermanos.shoestock.error.BusinessException;
+import com.estradahermanos.shoestock.mapper.LoginCodeMapper;
 import com.estradahermanos.shoestock.repository.entities.PasswordRecoveryToken;
 import com.estradahermanos.shoestock.repository.entities.UserAccount;
+import com.estradahermanos.shoestock.repository.entities.UserAdmin;
+import com.estradahermanos.shoestock.repository.repositories.LoginCodeRepository;
 import com.estradahermanos.shoestock.repository.repositories.PasswordRecoveryTokenRepository;
 import com.estradahermanos.shoestock.repository.repositories.UserAccountRepository;
+import com.estradahermanos.shoestock.repository.repositories.UserAdminRepository;
 import com.estradahermanos.shoestock.repository.repositories.UserSessionRepository;
 import com.estradahermanos.shoestock.utilities.BusinessDate;
 import com.estradahermanos.shoestock.utilities.JwtProvider;
+import com.estradahermanos.shoestock.utilities.LoginCodeGenerator;
 import com.estradahermanos.shoestock.utilities.SessionCodeGenerator;
 import com.estradahermanos.shoestock.utilities.UserAccountValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -23,6 +30,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,20 +99,44 @@ class PasswordResetServiceTest
         assertTrue(encoder.matches("new-secret", account.getPasswordHash()));
 
         UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
-        SessionCodeGenerator codeGenerator = mock(SessionCodeGenerator.class);
-        JwtProvider jwtProvider = mock(JwtProvider.class);
-        when(sessionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(codeGenerator.generate()).thenReturn("Ab3Zx");
-        when(jwtProvider.generateForSession("Ab3Zx")).thenReturn("jwt-token");
+        UserAdminRepository adminRepository = mock(UserAdminRepository.class);
+        LoginCodeRepository loginCodeRepository = mock(LoginCodeRepository.class);
+        LoginCodeGenerator loginCodeGenerator = mock(LoginCodeGenerator.class);
+        MailSendService mailSendService = mock(MailSendService.class);
+        BusinessDate businessDate = mock(BusinessDate.class);
+        when(adminRepository.findByDpi("1234567890123")).thenReturn(Optional.of(UserAdmin.builder()
+                .dpi("1234567890123")
+                .fullName("Diego Estrada")
+                .phone("55555555")
+                .email("diego@mail.com")
+                .build()));
+        when(loginCodeRepository.findUnusedByUsername("diego")).thenReturn(List.of());
+        when(loginCodeRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(loginCodeGenerator.generate()).thenReturn("1234");
+        when(businessDate.now()).thenReturn(LocalDateTime.of(2026, 10, 20, 8, 0));
         UserLoginService loginService = new UserLoginService(
-                userAccountRepository, sessionRepository, new UserAccountValidator(),
-                encoder, codeGenerator, jwtProvider);
+                userAccountRepository,
+                sessionRepository,
+                adminRepository,
+                loginCodeRepository,
+                Mappers.getMapper(LoginCodeMapper.class),
+                new UserAccountValidator(),
+                encoder,
+                mock(SessionCodeGenerator.class),
+                mock(JwtProvider.class),
+                loginCodeGenerator,
+                mailSendService,
+                businessDate);
 
         BusinessException rejected = assertThrows(BusinessException.class, () -> loginService.login(
                 LoginRequestDTO.builder().username("diego").password("old-secret").build()));
         assertEquals(HttpStatus.UNAUTHORIZED, rejected.getCode());
-        assertEquals("jwt-token", loginService.login(
-                LoginRequestDTO.builder().username("diego").password("new-secret").build()).getToken());
+        assertEquals("Invalid credentials", rejected.getMessage());
+
+        LoginChallengeResponseDTO challenge = loginService.login(
+                LoginRequestDTO.builder().username("diego").password("new-secret").build());
+        assertTrue(challenge.isSecondStepRequired());
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test

@@ -1,9 +1,11 @@
 package com.estradahermanos.shoestock.controller;
 
+import com.estradahermanos.shoestock.dto.request.LoginCodeVerifyRequestDTO;
 import com.estradahermanos.shoestock.dto.request.LoginRequestDTO;
 import com.estradahermanos.shoestock.dto.request.PasswordRecoveryRequestDTO;
 import com.estradahermanos.shoestock.dto.request.PasswordResetRequestDTO;
 import com.estradahermanos.shoestock.dto.response.ResponseSuccessDTO;
+import com.estradahermanos.shoestock.service.LoginCodeVerifyService;
 import com.estradahermanos.shoestock.service.PasswordRecoveryRequestService;
 import com.estradahermanos.shoestock.service.PasswordResetService;
 import com.estradahermanos.shoestock.service.UserLoginService;
@@ -27,12 +29,20 @@ public class AuthController
     private final UserLoginService userLoginService;
     private final PasswordRecoveryRequestService passwordRecoveryRequestService;
     private final PasswordResetService passwordResetService;
+    private final LoginCodeVerifyService loginCodeVerifyService;
 
     @PostMapping("/login")
-    @Operation(summary = "Authenticate an administrator and open a session, returning a JWT")
+    @Operation(summary = "Validate credentials and send a 4-digit login code. Does not open a session")
     public ResponseEntity<ResponseSuccessDTO> login(@RequestBody LoginRequestDTO request)
     {
         return ResponseBuilder.success(HttpStatus.OK, userLoginService.login(request));
+    }
+
+    @PostMapping("/login/verify")
+    @Operation(summary = "Verify the 4-digit login code and open a one-hour session")
+    public ResponseEntity<ResponseSuccessDTO> verifyLogin(@RequestBody LoginCodeVerifyRequestDTO request)
+    {
+        return ResponseBuilder.success(HttpStatus.OK, loginCodeVerifyService.verify(request));
     }
 
     @PostMapping("/password-recovery")

@@ -3,9 +3,12 @@ package com.estradahermanos.shoestock.controller;
 import com.estradahermanos.shoestock.config.AuthTokenInterceptor;
 import com.estradahermanos.shoestock.config.SecurityConfig;
 import com.estradahermanos.shoestock.config.WebMvcConfig;
+import com.estradahermanos.shoestock.dto.response.LoginChallengeResponseDTO;
+import com.estradahermanos.shoestock.dto.response.LoginResponseDTO;
 import com.estradahermanos.shoestock.dto.response.MessageResponseDTO;
 import com.estradahermanos.shoestock.error.BusinessException;
 import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
+import com.estradahermanos.shoestock.service.LoginCodeVerifyService;
 import com.estradahermanos.shoestock.service.PasswordRecoveryRequestService;
 import com.estradahermanos.shoestock.service.PasswordResetService;
 import com.estradahermanos.shoestock.service.UserLoginService;
@@ -41,6 +44,91 @@ class AuthControllerTest
 
     @MockitoBean
     private PasswordResetService passwordResetService;
+
+    @MockitoBean
+    private LoginCodeVerifyService loginCodeVerifyService;
+
+    @Test
+    void loginRequiresAuthToken() throws Exception
+    {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"password\":\"secret\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void verifyRequiresAuthToken() throws Exception
+    {
+        mockMvc.perform(post("/api/v1/auth/login/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"code\":\"1234\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginAsksForTheSecondStepAndDoesNotReturnAToken() throws Exception
+    {
+        when(userLoginService.login(any())).thenReturn(LoginChallengeResponseDTO.builder()
+                .secondStepRequired(true)
+                .message("A verification code was sent to the administrator email")
+                .build());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"password\":\"secret\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.second_step_required").value(true))
+                .andExpect(jsonPath("$.data.message")
+                        .value("A verification code was sent to the administrator email"))
+                .andExpect(jsonPath("$.data.token").doesNotExist());
+    }
+
+    @Test
+    void verifyReturnsTheSessionToken() throws Exception
+    {
+        when(loginCodeVerifyService.verify(any())).thenReturn(LoginResponseDTO.builder().token("jwt-token").build());
+
+        mockMvc.perform(post("/api/v1/auth/login/verify")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"code\":\"1234\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.token").value("jwt-token"));
+    }
+
+    @Test
+    void verifyExposesTheIncorrectCodeMessage() throws Exception
+    {
+        when(loginCodeVerifyService.verify(any())).thenThrow(BusinessException.builder()
+                .code(HttpStatus.UNAUTHORIZED)
+                .message("El codigo es incorrecto")
+                .build());
+
+        mockMvc.perform(post("/api/v1/auth/login/verify")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"code\":\"1234\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("El codigo es incorrecto"));
+    }
+
+    @Test
+    void verifyExposesTheExpiredCodeMessage() throws Exception
+    {
+        when(loginCodeVerifyService.verify(any())).thenThrow(BusinessException.builder()
+                .code(HttpStatus.BAD_REQUEST)
+                .message("El código ha expirado")
+                .build());
+
+        mockMvc.perform(post("/api/v1/auth/login/verify")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"diego\",\"code\":\"1234\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El código ha expirado"));
+    }
 
     @Test
     void recoveryRequiresAuthToken() throws Exception

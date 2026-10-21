@@ -13,6 +13,7 @@ import com.estradahermanos.shoestock.repository.entities.Sale;
 import com.estradahermanos.shoestock.repository.entities.Shoe;
 import com.estradahermanos.shoestock.repository.entities.ShoeStock;
 import com.estradahermanos.shoestock.repository.entities.Supplier;
+import com.estradahermanos.shoestock.repository.entities.LoginCode;
 import com.estradahermanos.shoestock.repository.entities.PasswordRecoveryToken;
 import com.estradahermanos.shoestock.repository.entities.UserAccount;
 import com.estradahermanos.shoestock.repository.entities.UserAdmin;
@@ -172,5 +173,22 @@ class MapperCoverageTest
         assertEquals(creation, token.getCreationDate());
         assertEquals(expiration, token.getExpirationDate());
         assertFalse(token.isUsed());
+    }
+
+    @Test
+    void mapsLoginCodeAsUnused()
+    {
+        LoginCodeMapper mapper = Mappers.getMapper(LoginCodeMapper.class);
+        LocalDateTime creation = LocalDateTime.of(2026, 10, 20, 8, 0);
+        LocalDateTime expiration = creation.plusMinutes(2);
+
+        LoginCode loginCode = mapper.toEntity("0042", "diego", creation, expiration);
+
+        assertNull(loginCode.getId());
+        assertEquals("0042", loginCode.getCode());
+        assertEquals("diego", loginCode.getUsername());
+        assertEquals(creation, loginCode.getCreationDate());
+        assertEquals(expiration, loginCode.getExpirationDate());
+        assertFalse(loginCode.isUsed());
     }
 }
