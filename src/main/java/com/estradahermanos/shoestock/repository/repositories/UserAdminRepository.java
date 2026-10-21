@@ -29,6 +29,11 @@ public class UserAdminRepository
         return userAdminCrud.findAll();
     }
 
+    public List<UserAdmin> findWithEmail()
+    {
+        return userAdminCrud.findWithEmail();
+    }
+
     public boolean existsByDpi(String dpi)
     {
         return userAdminCrud.existsById(dpi);

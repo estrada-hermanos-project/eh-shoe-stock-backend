@@ -31,10 +31,11 @@ public class SaleRegisterService
     private final InventoryValidator       inventoryValidator;
     private final InventoryVariantLookup   inventoryVariantLookup;
     private final InventoryDecreaseService inventoryDecreaseService;
+    private final SaleStockAlertService    saleStockAlertService;
     private final SaleMapper               saleMapper;
     private final BusinessDate             businessDate;
 
-    /** Registra una venta, descuenta stock y devuelve el detalle de la venta. */
+    /** Registra una venta, descuenta stock y avisa por correo si la variante quedó baja o agotada. */
     @Transactional
     public SaleResponseDTO register(CreateSaleRequestDTO request)
     {
@@ -70,7 +71,10 @@ public class SaleRegisterService
                     .build());
 
             log.info("Sale registered");
-            return saleMapper.toResponse(saved, variant.getShoeId(), request.getName(), request.getColor());
+            SaleResponseDTO response = saleMapper.toResponse(
+                    saved, variant.getShoeId(), request.getName(), request.getColor());
+            notifyWithoutAffectingSale(variant);
+            return response;
         }
         catch (BusinessException exception)
         {
@@ -83,6 +87,19 @@ public class SaleRegisterService
                     .code(HttpStatus.INTERNAL_SERVER_ERROR)
                     .message("Could not register sale")
                     .build();
+        }
+    }
+
+    /** El aviso es posterior a la venta. Si el correo falla, la venta y el stock se conservan. */
+    private void notifyWithoutAffectingSale(ShoeStock variant)
+    {
+        try
+        {
+            saleStockAlertService.notifyAfterSale(variant.getShoeId(), variant.getColor(), variant.getSize());
+        }
+        catch (Exception exception)
+        {
+            ExceptionLog.unexpected("Failed to send stock alert after sale", exception);
         }
     }
 }
