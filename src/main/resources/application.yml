@@ -41,6 +41,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-32bytes-min}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5500}
 
 springdoc:
   api-docs:

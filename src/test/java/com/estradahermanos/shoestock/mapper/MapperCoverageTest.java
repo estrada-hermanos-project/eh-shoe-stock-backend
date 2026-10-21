@@ -13,6 +13,7 @@ import com.estradahermanos.shoestock.repository.entities.Sale;
 import com.estradahermanos.shoestock.repository.entities.Shoe;
 import com.estradahermanos.shoestock.repository.entities.ShoeStock;
 import com.estradahermanos.shoestock.repository.entities.Supplier;
+import com.estradahermanos.shoestock.repository.entities.PasswordRecoveryToken;
 import com.estradahermanos.shoestock.repository.entities.UserAccount;
 import com.estradahermanos.shoestock.repository.entities.UserAdmin;
 import com.estradahermanos.shoestock.utilities.OrderStatusEnum;
@@ -20,9 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MapperCoverageTest
@@ -152,5 +155,22 @@ class MapperCoverageTest
                 .passwordHash("hash")
                 .dpi("123")
                 .build()).getUsername());
+    }
+
+    @Test
+    void mapsPasswordRecoveryTokenAsUnused()
+    {
+        PasswordRecoveryTokenMapper mapper = Mappers.getMapper(PasswordRecoveryTokenMapper.class);
+        LocalDateTime creation = LocalDateTime.of(2026, 10, 19, 22, 0);
+        LocalDateTime expiration = creation.plusMinutes(30);
+
+        PasswordRecoveryToken token = mapper.toEntity("raw-token", "diego", creation, expiration);
+
+        assertNull(token.getId());
+        assertEquals("raw-token", token.getToken());
+        assertEquals("diego", token.getUsername());
+        assertEquals(creation, token.getCreationDate());
+        assertEquals(expiration, token.getExpirationDate());
+        assertFalse(token.isUsed());
     }
 }
