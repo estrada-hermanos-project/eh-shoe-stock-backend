@@ -5,14 +5,17 @@ import com.estradahermanos.shoestock.config.OpenApiConfig;
 import com.estradahermanos.shoestock.controller.AuthController;
 import com.estradahermanos.shoestock.controller.UserAccountController;
 import com.estradahermanos.shoestock.dto.request.CreateUserAccountRequestDTO;
+import com.estradahermanos.shoestock.dto.request.LoginCodeVerifyRequestDTO;
 import com.estradahermanos.shoestock.dto.request.LoginRequestDTO;
 import com.estradahermanos.shoestock.dto.request.PasswordRecoveryRequestDTO;
 import com.estradahermanos.shoestock.dto.request.PasswordResetRequestDTO;
+import com.estradahermanos.shoestock.dto.response.LoginChallengeResponseDTO;
 import com.estradahermanos.shoestock.dto.response.LoginResponseDTO;
 import com.estradahermanos.shoestock.dto.response.MessageResponseDTO;
 import com.estradahermanos.shoestock.dto.response.UserAccountResponseDTO;
 import com.estradahermanos.shoestock.error.BusinessException;
 import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
+import com.estradahermanos.shoestock.service.LoginCodeVerifyService;
 import com.estradahermanos.shoestock.service.PasswordRecoveryRequestService;
 import com.estradahermanos.shoestock.service.PasswordResetService;
 import com.estradahermanos.shoestock.service.UserAccountCreateService;
@@ -53,10 +56,12 @@ class QualityCoverageSupportTest
                 .generateForSession("Ab12C");
         String code = new SessionCodeGenerator().generate();
         String recoveryToken = new PasswordRecoveryTokenGenerator().generate();
+        String loginCode = new LoginCodeGenerator().generate();
 
         assertTrue(token.contains("."));
         assertEquals(5, code.length());
         assertEquals(43, recoveryToken.length());
+        assertTrue(loginCode.matches("[0-9]{4}"));
         assertTrue(recoveryToken.matches("[A-Za-z0-9_-]+"));
     }
 
@@ -95,8 +100,12 @@ class QualityCoverageSupportTest
         UserLoginService loginService = mock(UserLoginService.class);
         PasswordRecoveryRequestService recoveryService = mock(PasswordRecoveryRequestService.class);
         PasswordResetService resetService = mock(PasswordResetService.class);
+        LoginCodeVerifyService verifyService = mock(LoginCodeVerifyService.class);
         UserAccountCreateService accountService = mock(UserAccountCreateService.class);
-        when(loginService.login(org.mockito.ArgumentMatchers.any())).thenReturn(LoginResponseDTO.builder().token("jwt").build());
+        when(loginService.login(org.mockito.ArgumentMatchers.any())).thenReturn(
+                LoginChallengeResponseDTO.builder().secondStepRequired(true).message("sent").build());
+        when(verifyService.verify(org.mockito.ArgumentMatchers.any())).thenReturn(
+                LoginResponseDTO.builder().token("jwt").build());
         when(recoveryService.request(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(MessageResponseDTO.builder().message("sent").build());
         when(resetService.reset(org.mockito.ArgumentMatchers.any()))
@@ -104,9 +113,12 @@ class QualityCoverageSupportTest
         when(accountService.create(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(UserAccountResponseDTO.builder().username("diego").build());
 
-        AuthController authController = new AuthController(loginService, recoveryService, resetService);
+        AuthController authController = new AuthController(loginService, recoveryService, resetService, verifyService);
         assertEquals(HttpStatus.OK, authController
                 .login(LoginRequestDTO.builder().username("diego").password("secret").build())
+                .getStatusCode());
+        assertEquals(HttpStatus.OK, authController
+                .verifyLogin(LoginCodeVerifyRequestDTO.builder().username("diego").code("1234").build())
                 .getStatusCode());
         assertEquals(HttpStatus.OK, authController
                 .requestPasswordRecovery(PasswordRecoveryRequestDTO.builder().username("diego").build())

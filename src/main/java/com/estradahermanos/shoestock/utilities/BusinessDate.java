@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
@@ -31,5 +32,11 @@ public class BusinessDate
     public LocalDate today()
     {
         return LocalDate.now(clock);
+    }
+
+    /** Hora local del negocio. No depende de la zona en la que arranque la JVM. */
+    public LocalDateTime now()
+    {
+        return LocalDateTime.ofInstant(clock.instant(), ZONE);
     }
 }

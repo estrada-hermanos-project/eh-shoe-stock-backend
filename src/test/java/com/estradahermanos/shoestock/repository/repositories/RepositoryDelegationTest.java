@@ -1,5 +1,6 @@
 package com.estradahermanos.shoestock.repository.repositories;
 
+import com.estradahermanos.shoestock.repository.cruds.LoginCodeCrud;
 import com.estradahermanos.shoestock.repository.cruds.PasswordRecoveryTokenCrud;
 import com.estradahermanos.shoestock.repository.cruds.OrderCrud;
 import com.estradahermanos.shoestock.repository.cruds.OrderDetailCrud;
@@ -10,6 +11,7 @@ import com.estradahermanos.shoestock.repository.cruds.SupplierCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserAccountCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserAdminCrud;
 import com.estradahermanos.shoestock.repository.cruds.UserSessionCrud;
+import com.estradahermanos.shoestock.repository.entities.LoginCode;
 import com.estradahermanos.shoestock.repository.entities.PasswordRecoveryToken;
 import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.OrderDetail;
@@ -242,6 +244,31 @@ class RepositoryDelegationTest
         assertSame(token, repository.save(token));
         assertEquals(1, repository.saveAll(List.of(token)).size());
         assertEquals(token, repository.findByToken("raw-token").orElseThrow());
+        assertEquals(1, repository.findUnusedByUsername("diego").size());
+    }
+
+    @Test
+    void loginCodeRepositoryDelegatesToTheCrud()
+    {
+        LoginCodeCrud crud = mock(LoginCodeCrud.class);
+        LoginCodeRepository repository = new LoginCodeRepository(crud);
+        LoginCode loginCode = LoginCode.builder()
+                .id(4)
+                .username("diego")
+                .code("0042")
+                .creationDate(LocalDateTime.of(2026, 10, 20, 8, 0))
+                .expirationDate(LocalDateTime.of(2026, 10, 20, 8, 2))
+                .used(false)
+                .build();
+        when(crud.save(loginCode)).thenReturn(loginCode);
+        when(crud.saveAll(List.of(loginCode))).thenReturn(List.of(loginCode));
+        when(crud.findFirstByUsernameAndCodeOrderByCreationDateDescIdDesc("diego", "0042"))
+                .thenReturn(Optional.of(loginCode));
+        when(crud.findByUsernameAndUsedFalse("diego")).thenReturn(List.of(loginCode));
+
+        assertSame(loginCode, repository.save(loginCode));
+        assertEquals(1, repository.saveAll(List.of(loginCode)).size());
+        assertEquals(loginCode, repository.findLatestByUsernameAndCode("diego", "0042").orElseThrow());
         assertEquals(1, repository.findUnusedByUsername("diego").size());
     }
 }
