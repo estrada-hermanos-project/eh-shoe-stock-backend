@@ -203,6 +203,7 @@ class RepositoryDelegationTest
         when(accountCrud.findById("diego")).thenReturn(Optional.of(account));
         when(accountCrud.existsById("diego")).thenReturn(true);
         when(sessionCrud.save(session)).thenReturn(session);
+        when(sessionCrud.findBySessionCode("Ab12C")).thenReturn(Optional.of(session));
 
         assertSame(supplier, suppliers.save(supplier));
         assertEquals(supplier, suppliers.findById(2).orElseThrow());
@@ -223,6 +224,7 @@ class RepositoryDelegationTest
         assertEquals(account, accounts.findByUsername("diego").orElseThrow());
         assertTrue(accounts.existsByUsername("diego"));
         assertSame(session, sessions.save(session));
+        assertEquals(session, sessions.findBySessionCode("Ab12C").orElseThrow());
     }
 
     @Test
