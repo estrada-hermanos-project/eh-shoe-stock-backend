@@ -52,13 +52,14 @@ class QualityCoverageSupportTest
     @Test
     void jwtAndSessionCodeAreGenerated()
     {
-        String token = new JwtProvider("local-dev-jwt-secret-change-me-32bytes-min", 60)
-                .generateForSession("Ab12C");
+        JwtProvider jwtProvider = new JwtProvider("local-dev-jwt-secret-change-me-32bytes-min", 60);
+        String token = jwtProvider.generateForSession("Ab12C");
         String code = new SessionCodeGenerator().generate();
         String recoveryToken = new PasswordRecoveryTokenGenerator().generate();
         String loginCode = new LoginCodeGenerator().generate();
 
         assertTrue(token.contains("."));
+        assertEquals("Ab12C", jwtProvider.sessionCodeFrom(token));
         assertEquals(5, code.length());
         assertEquals(43, recoveryToken.length());
         assertTrue(loginCode.matches("[0-9]{4}"));

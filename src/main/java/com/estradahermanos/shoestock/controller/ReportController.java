@@ -3,8 +3,10 @@ package com.estradahermanos.shoestock.controller;
 import com.estradahermanos.shoestock.dto.request.InventoryReportFilterDTO;
 import com.estradahermanos.shoestock.dto.request.MerchandiseReportFilterDTO;
 import com.estradahermanos.shoestock.dto.request.SalesReportFilterDTO;
+import com.estradahermanos.shoestock.dto.request.SendReportEmailRequestDTO;
 import com.estradahermanos.shoestock.dto.request.SummaryReportFilterDTO;
 import com.estradahermanos.shoestock.dto.response.ResponseSuccessDTO;
+import com.estradahermanos.shoestock.service.ReportEmailSendService;
 import com.estradahermanos.shoestock.service.ReportInventoryQueryService;
 import com.estradahermanos.shoestock.service.ReportMerchandiseQueryService;
 import com.estradahermanos.shoestock.service.ReportSalesQueryService;
@@ -18,6 +20,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +39,7 @@ public class ReportController
     private final ReportInventoryQueryService   reportInventoryQueryService;
     private final ReportMerchandiseQueryService reportMerchandiseQueryService;
     private final ReportSummaryQueryService     reportSummaryQueryService;
+    private final ReportEmailSendService        reportEmailSendService;
 
     @GetMapping("/sales/top-products")
     @Operation(summary = "Best-selling variants, optional period and limit")
@@ -341,5 +347,14 @@ public class ReportController
                 .endDate(endDate)
                 .build();
         return ResponseBuilder.success(HttpStatus.OK, reportSummaryQueryService.summary(filter));
+    }
+
+    @PostMapping("/email")
+    @Operation(summary = "Generate a report PDF and send it to the signed-in administrator email")
+    public ResponseEntity<ResponseSuccessDTO> sendEmail(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody SendReportEmailRequestDTO request)
+    {
+        return ResponseBuilder.success(HttpStatus.OK, reportEmailSendService.send(authorization, request));
     }
 }
