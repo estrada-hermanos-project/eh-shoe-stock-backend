@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.Objects;
+
 @Component
 public class UserAccountValidator
 {
@@ -18,6 +20,26 @@ public class UserAccountValidator
     {
         validateCredentials(username, password);
         requireField(dpi, "DPI is required");
+    }
+
+    public void validateUsername(String username)
+    {
+        requireField(username, "Username is required");
+    }
+
+    public void validatePasswordReset(String username, String newPassword, String confirmation, String token)
+    {
+        validateUsername(username);
+        requireField(newPassword, "Password is required");
+        requireField(confirmation, "Password confirmation is required");
+        requireField(token, "Recovery token is required");
+        if (!Objects.equals(newPassword, confirmation))
+        {
+            throw BusinessException.builder()
+                    .code(HttpStatus.BAD_REQUEST)
+                    .message("Password confirmation does not match")
+                    .build();
+        }
     }
 
     private void requireField(String value, String message)
