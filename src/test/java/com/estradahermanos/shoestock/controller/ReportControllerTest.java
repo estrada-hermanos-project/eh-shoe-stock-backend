@@ -4,8 +4,12 @@ import com.estradahermanos.shoestock.config.AuthTokenInterceptor;
 import com.estradahermanos.shoestock.config.SecurityConfig;
 import com.estradahermanos.shoestock.config.WebMvcConfig;
 import com.estradahermanos.shoestock.dto.request.SalesReportFilterDTO;
+import com.estradahermanos.shoestock.dto.request.SendReportEmailRequestDTO;
+import com.estradahermanos.shoestock.dto.response.MessageResponseDTO;
 import com.estradahermanos.shoestock.dto.response.ProductSalesRankDTO;
+import com.estradahermanos.shoestock.error.BusinessException;
 import com.estradahermanos.shoestock.error.ControllerExceptionHandler;
+import com.estradahermanos.shoestock.service.ReportEmailSendService;
 import com.estradahermanos.shoestock.service.ReportInventoryQueryService;
 import com.estradahermanos.shoestock.service.ReportMerchandiseQueryService;
 import com.estradahermanos.shoestock.service.ReportSalesQueryService;
@@ -16,13 +20,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +53,9 @@ class ReportControllerTest
 
     @MockitoBean
     private ReportSummaryQueryService reportSummaryQueryService;
+
+    @MockitoBean
+    private ReportEmailSendService reportEmailSendService;
 
     @Test
     void rejectsMissingAuthToken() throws Exception
@@ -126,6 +137,40 @@ class ReportControllerTest
         expectOk("/api/v1/reports/orders/not-selling");
         expectOk("/api/v1/reports/catalog/new-styles?start_date=2026-09-01&end_date=2026-09-30");
         expectOk("/api/v1/reports/summary?start_date=2026-09-01&end_date=2026-09-30");
+    }
+
+    @Test
+    void sendEmailReturnsOk() throws Exception
+    {
+        when(reportEmailSendService.send(eq("Bearer jwt-token"), any(SendReportEmailRequestDTO.class)))
+                .thenReturn(MessageResponseDTO.builder()
+                        .message("The report was sent to the administrator email")
+                        .build());
+
+        mockMvc.perform(post("/api/v1/reports/email")
+                        .header("auth-token", "test-token")
+                        .header("Authorization", "Bearer jwt-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"report\":\"summary\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("The report was sent to the administrator email"));
+    }
+
+    @Test
+    void sendEmailReturnsBusinessError() throws Exception
+    {
+        when(reportEmailSendService.send(any(), any(SendReportEmailRequestDTO.class)))
+                .thenThrow(BusinessException.builder()
+                        .code(HttpStatus.BAD_REQUEST)
+                        .message("Unknown report")
+                        .build());
+
+        mockMvc.perform(post("/api/v1/reports/email")
+                        .header("auth-token", "test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"report\":\"catalog\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Unknown report"));
     }
 
     private void expectOk(String path) throws Exception

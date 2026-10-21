@@ -1,11 +1,16 @@
 package com.estradahermanos.shoestock.mapper;
 
+import com.estradahermanos.shoestock.dto.mail.MailAttachment;
+import com.estradahermanos.shoestock.dto.mail.MailMessage;
 import com.estradahermanos.shoestock.dto.request.CreateShoeRequestDTO;
 import com.estradahermanos.shoestock.dto.request.CreateSupplierRequestDTO;
 import com.estradahermanos.shoestock.dto.request.CreateUserAdminRequestDTO;
 import com.estradahermanos.shoestock.dto.request.CreateVariantRequestDTO;
 import com.estradahermanos.shoestock.dto.request.UpdateSupplierRequestDTO;
+import com.estradahermanos.shoestock.dto.request.SendReportEmailRequestDTO;
 import com.estradahermanos.shoestock.dto.request.UpdateUserAdminRequestDTO;
+import com.estradahermanos.shoestock.dto.response.OutOfStockDTO;
+import com.estradahermanos.shoestock.dto.response.SalesByCategoryDTO;
 import com.estradahermanos.shoestock.dto.response.OrderDetailResponseDTO;
 import com.estradahermanos.shoestock.repository.entities.Order;
 import com.estradahermanos.shoestock.repository.entities.OrderDetail;
@@ -190,5 +195,44 @@ class MapperCoverageTest
         assertEquals(creation, loginCode.getCreationDate());
         assertEquals(expiration, loginCode.getExpirationDate());
         assertFalse(loginCode.isUsed());
+    }
+
+    @Test
+    void mapsReportEmailFiltersAndPdfRows()
+    {
+        ReportEmailFilterMapper filterMapper = Mappers.getMapper(ReportEmailFilterMapper.class);
+        ReportEmailMailMapper mailMapper = Mappers.getMapper(ReportEmailMailMapper.class);
+        ReportPdfRowMapper rowMapper = Mappers.getMapper(ReportPdfRowMapper.class);
+        SendReportEmailRequestDTO request = SendReportEmailRequestDTO.builder()
+                .startDate(LocalDate.of(2026, 9, 1))
+                .endDate(LocalDate.of(2026, 9, 30))
+                .type("Dama")
+                .supplierId(2)
+                .limit(10)
+                .shoeCode("OXF-001")
+                .withStockOnly(true)
+                .groupBy("DAY")
+                .days(45)
+                .includeOutOfStock(true)
+                .build();
+
+        assertEquals(LocalDate.of(2026, 9, 1), filterMapper.toSalesFilter(request).getStartDate());
+        assertEquals("Dama", filterMapper.toInventoryFilter(request).getType());
+        assertEquals(2, filterMapper.toMerchandiseFilter(request).getSupplierId());
+        assertEquals(LocalDate.of(2026, 9, 30), filterMapper.toSummaryFilter(request).getEndDate());
+
+        MailAttachment attachment = mailMapper.toAttachment("reporte.pdf", new byte[] {1, 2});
+        MailMessage message = mailMapper.toMessage("ana@gmail.com", "Asunto", "Cuerpo", attachment);
+        assertEquals("application/pdf", attachment.getContentType());
+        assertEquals("ana@gmail.com", message.getRecipient());
+        assertEquals(attachment, message.getAttachment());
+
+        assertEquals("", rowMapper.text(null));
+        assertEquals("", rowMapper.percent(null));
+        assertEquals("No", rowMapper.yesNo(false));
+        assertEquals("No", rowMapper.yesNo(null));
+        assertEquals("40%", rowMapper.toCategoryRow(SalesByCategoryDTO.builder().sharePercent(40).build()).get(3));
+        assertEquals("No", rowMapper.toOutOfStockRow(OutOfStockDTO.builder().hasPendingOrder(false).build()).get(4));
+        assertEquals("2026-09-02", rowMapper.neverSold(LocalDate.of(2026, 9, 2)));
     }
 }

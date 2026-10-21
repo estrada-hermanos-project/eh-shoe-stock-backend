@@ -35,4 +35,15 @@ public class JwtProvider
                 .signWith(secretKey)
                 .compact();
     }
+
+    /** Lee el codigo de sesion del JWT. Lanza si la firma o la vigencia no son validas. */
+    public String sessionCodeFrom(String token)
+    {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+    }
 }

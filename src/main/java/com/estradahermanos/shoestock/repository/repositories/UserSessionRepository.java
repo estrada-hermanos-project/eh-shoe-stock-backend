@@ -5,6 +5,8 @@ import com.estradahermanos.shoestock.repository.entities.UserSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class UserSessionRepository
@@ -14,5 +16,10 @@ public class UserSessionRepository
     public UserSession save(UserSession userSession)
     {
         return userSessionCrud.save(userSession);
+    }
+
+    public Optional<UserSession> findBySessionCode(String sessionCode)
+    {
+        return userSessionCrud.findBySessionCode(sessionCode);
     }
 }
