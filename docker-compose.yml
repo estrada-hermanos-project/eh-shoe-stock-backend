@@ -1,5 +1,6 @@
 # API Java 21 + MySQL 8 + volumen persistente de la base de datos.
 # La imagen de la API se construye con el Dockerfile de este directorio.
+# Los valores de las variables de entorno se leen del archivo .env (no versionado).
 
 name: eh-shoe-stock
 
@@ -9,11 +10,11 @@ services:
     container_name: eh-shoe-stock-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: eh-shoe-stock
-      MYSQL_USER: diego
-      MYSQL_PASSWORD: diego18
-      MYSQL_ROOT_PASSWORD: diego18
-      TZ: UTC
+      MYSQL_DATABASE: ${DB_NAME:?DB_NAME es obligatorio}
+      MYSQL_USER: ${DB_USERNAME:?DB_USERNAME es obligatorio}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD es obligatorio}
+      TZ: ${TZ:?TZ es obligatorio}
     # 3306 del host ya lo usa MySQL local. 3307 es solo para entrar desde Windows
     # (Workbench, etc.). Entre contenedores MySQL sigue en el 3306 interno.
     ports:
@@ -22,7 +23,8 @@ services:
       - ./volumes/mysql:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-udiego", "-pdiego18"]
+      # $$ evita la interpolación de Compose: las variables las resuelve el shell del contenedor.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -41,22 +43,22 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      SERVER_PORT: 8080
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: eh-shoe-stock
-      DB_USERNAME: diego
-      DB_PASSWORD: diego18
-      JPA_DDL_AUTO: validate
-      AUTH_TOKEN: local-auth-token
-      JWT_SECRET: local-dev-jwt-secret-change-me-32bytes-min
-      JWT_EXPIRATION_MINUTES: 60
-      FRONTEND_BASE_URL: http://34.229.167.238:5500
-      MAIL_HOST: smtp.gmail.com
-      MAIL_PORT: 587
-      MAIL_USERNAME: estradahermanoscfo@gmail.com
-      MAIL_PASSWORD: csjxsbzkhhgnlxjv
-      TZ: UTC
+      SERVER_PORT: ${SERVER_PORT:?SERVER_PORT es obligatorio}
+      DB_HOST: ${DB_HOST:?DB_HOST es obligatorio}
+      DB_PORT: ${DB_PORT:?DB_PORT es obligatorio}
+      DB_NAME: ${DB_NAME:?DB_NAME es obligatorio}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME es obligatorio}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:?JPA_DDL_AUTO es obligatorio}
+      AUTH_TOKEN: ${AUTH_TOKEN:?AUTH_TOKEN es obligatorio}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:?JWT_EXPIRATION_MINUTES es obligatorio}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:?FRONTEND_BASE_URL es obligatorio}
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST es obligatorio}
+      MAIL_PORT: ${MAIL_PORT:?MAIL_PORT es obligatorio}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME es obligatorio}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD es obligatorio}
+      TZ: ${TZ:?TZ es obligatorio}
     ports:
       - "8080:8080"
     networks:
